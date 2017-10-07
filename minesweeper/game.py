@@ -1,0 +1,380 @@
+import os
+import pygame
+from . board import Board
+from . gui import SelectionGroup, Input, Button, Label
+
+
+ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'resources')
+
+
+def load_image(name, size=None):
+    path = os.path.join(ASSETS_DIR, name)
+    try:
+        image = pygame.image.load(path)
+    except pygame.error as error:
+        print('Cannot load image: ', path)
+        raise SystemError(error)
+
+    if size is not None:
+        if isinstance(size, int):
+            size = (size, size)
+        image = pygame.transform.scale(image, size)
+
+    return image
+
+
+def load_font(name, size):
+    path = os.path.join(ASSETS_DIR, name)
+    font = pygame.font.Font(path, size)
+    return font
+
+
+def create_count_tiles(tile_size, font_name):
+    """Create tiles for mine counts.
+
+    Additionally an empty tile without a digit is returned for 0
+
+    Parameters
+    ----------
+    tile_size
+        Size of tiles.
+    font_name : string
+        Font name to be found in resources directory. The size will be 0.9
+        of `tile_size`.
+
+    Returns
+    -------
+    tiles : list of pygame.Surface
+        List of tiles containing 9 elements.
+    """
+    colors = [
+        None,
+        'Blue',
+        'Dark Green',
+        'Red',
+        'Navy',
+        'Brown',
+        'Light Sea Green',
+        'Black',
+        'Dim Gray'
+    ]
+
+    font_size = int(tile_size * 0.9)
+    font = load_font(font_name, font_size)
+
+    empty_tile = pygame.Surface((tile_size, tile_size), pygame.SRCALPHA)
+    center = empty_tile.get_rect().center
+
+    tiles = [empty_tile.copy()]
+
+    for count in range(1, 9):
+        glyph = font.render(str(count), True, pygame.Color(colors[count]))
+        width = glyph.get_rect().width
+
+        glyph_center = (center[0] + int(0.15 * width), center[1])
+        rect = glyph.get_rect(center=glyph_center)
+        tile = empty_tile.copy()
+        tile.blit(glyph, rect.topleft)
+        tiles.append(tile)
+
+    return tiles
+
+
+def create_field(n_rows, n_cols, tile_size, color, line_color):
+    field = pygame.Surface((n_cols * tile_size, n_rows * tile_size))
+    field.fill(color)
+
+    for i in range(n_rows):
+        pygame.draw.line(field, line_color,
+                         (0, i * tile_size),
+                         (n_cols * tile_size, i * tile_size))
+
+    for j in range(n_cols):
+        pygame.draw.line(field, line_color,
+                         (j * tile_size, 0),
+                         (j * tile_size, n_rows * tile_size))
+
+    return field
+
+
+class Game:
+    """Main game class."""
+    TILE_SIZE = 20
+    GUI_WIDTH = 91
+    HUD_HEIGHT = 30
+    MARGIN = 20
+    BG_COLOR = pygame.Color('Light Slate Gray')
+    FIELD_BG_COLOR = (220, 220, 220)
+    FIELD_LINES_COLOR = (154, 154, 154)
+    GUI_FONT_COLOR = pygame.Color('Light Yellow')
+    GUI_FONT_SIZE = 12
+    HUD_FONT_SIZE = 12
+    DIGITS = {chr(c) for c in range(ord('0'), ord('9') + 1)}
+    MAX_BOARD_DIMENSION = 50
+    MIN_BOARD_DIMENSION_DISPLAY = 10
+
+    def __init__(self):
+        self.n_rows = 10
+        self.n_cols = 10
+        self.n_mines = 10
+
+        mine_count_images = create_count_tiles(self.TILE_SIZE,
+                                               "kenvector_future.ttf")
+        tile_image = load_image('tile.png', self.TILE_SIZE)
+        mine_image = load_image('mine.png', self.TILE_SIZE)
+        flag_image = load_image('flag.png', self.TILE_SIZE)
+
+        self.board = Board(
+            self.n_rows, self.n_cols, self.n_mines, self.TILE_SIZE,
+            tile_image, mine_count_images, flag_image, mine_image)
+
+        self.field = create_field(self.n_rows, self.n_cols, self.TILE_SIZE,
+                                  self.FIELD_BG_COLOR, self.FIELD_LINES_COLOR)
+
+        self.screen = None
+        self.board_rect = None
+        self.hud_rect = None
+        self.gui_rect = None
+        self.init_screen()
+
+        gui_font = load_font("kenvector_future_thin.ttf", self.GUI_FONT_SIZE)
+        unselected_image = load_image("radio.png")
+        selected_image = load_image("radio_checked.png")
+        self.difficulty_selector = SelectionGroup(
+            gui_font,
+            self.GUI_FONT_COLOR,
+            unselected_image, selected_image,
+            "DIFFICULTY",
+            ["EASY", "NORMAL", "HARD", "CUSTOM"],
+            position=self.gui_rect.topleft)
+
+        self.difficulty_selector.rect.centerx = self.gui_rect.centerx
+        self.difficulty_selector.rect.y = self.gui_rect.y
+        self.difficulty_selector.callback = self.on_difficulty_change
+
+        self.width_input = Input(gui_font, self.GUI_FONT_COLOR,
+                                 "WIDTH", self.n_cols,
+                                 width=self.GUI_WIDTH, max_value_length=3,
+                                 allowed_symbols=self.DIGITS,
+                                 on_enter_callback=self.on_cols_enter)
+        self.height_input = Input(gui_font, self.GUI_FONT_COLOR,
+                                  "HEIGHT", self.n_rows, width=self.GUI_WIDTH,
+                                  max_value_length=3,
+                                  allowed_symbols=self.DIGITS,
+                                  on_enter_callback=self.on_rows_enter)
+        self.mines_input = Input(gui_font, self.GUI_FONT_COLOR,
+                                 "MINES", self.n_mines, width=self.GUI_WIDTH,
+                                 max_value_length=4,
+                                 allowed_symbols=self.DIGITS,
+                                 on_enter_callback=self.on_mines_enter)
+
+        self.timer = Input(gui_font, self.GUI_FONT_COLOR,
+                           "TIME", self.board.time)
+        self.current_mines = Input(gui_font, self.GUI_FONT_COLOR,
+                                   "MINES", self.board.n_mines)
+
+        self.status = Label(gui_font, self.GUI_FONT_COLOR, "CLICK TO START",
+                            position=self.hud_rect.topleft)
+
+        self.restart_button = Button(gui_font,
+                                     self.GUI_FONT_COLOR,
+                                     "RESTART",
+                                     self.board.reset)
+        self.restart_button.rect.topleft = (1.75 * self.MARGIN, self.MARGIN)
+
+        self.place_gui()
+
+    def place_gui(self):
+        self.width_input.rect.topleft = (
+            self.gui_rect.x,
+            self.gui_rect.y + 1.225 * self.difficulty_selector.rect.height)
+        self.height_input.rect.topleft = (
+            self.gui_rect.x,
+            self.width_input.rect.bottom + 0.4 * self.height_input.rect.height)
+        self.mines_input.rect.topleft = (
+            self.gui_rect.x,
+            self.height_input.rect.bottom + 0.4 * self.width_input.rect.height)
+        self.timer.rect.topleft = (
+            self.hud_rect.right - 2 * self.timer.rect.width,
+            self.hud_rect.top)
+        self.current_mines.rect.topleft = (
+            self.timer.rect.left,
+            self.timer.rect.bottom + 0.4 * self.timer.rect.height)
+
+    def reset_game(self):
+        self.board.reset(n_rows=self.n_rows,
+                         n_cols=self.n_cols,
+                         n_mines=self.n_mines)
+
+    def init_screen(self):
+        board_area_width = \
+            max(self.n_cols, self.MIN_BOARD_DIMENSION_DISPLAY) * self.TILE_SIZE
+        board_area_height = \
+            max(self.n_rows, self.MIN_BOARD_DIMENSION_DISPLAY) * self.TILE_SIZE
+        window_width = 3 * self.MARGIN + self.GUI_WIDTH + board_area_width
+        window_height = 3 * self.MARGIN + self.HUD_HEIGHT + board_area_height
+
+        board_area_rect = pygame.Rect(2 * self.MARGIN + self.GUI_WIDTH,
+                                      2 * self.MARGIN + self.HUD_HEIGHT,
+                                      board_area_width,
+                                      board_area_height)
+
+        self.board.rect.size = (self.n_cols * self.TILE_SIZE,
+                                self.n_rows * self.TILE_SIZE)
+        self.board.rect.center = board_area_rect.center
+
+        self.hud_rect = pygame.Rect(2 * self.MARGIN + self.GUI_WIDTH,
+                                    self.MARGIN,
+                                    board_area_width,
+                                    self.HUD_HEIGHT)
+
+        self.screen = pygame.display.set_mode((window_width, window_height))
+        self.screen.fill(self.BG_COLOR)
+        self.field = create_field(self.n_rows, self.n_cols, self.TILE_SIZE,
+                                  self.FIELD_BG_COLOR, self.FIELD_LINES_COLOR)
+
+        self.gui_rect = pygame.Rect(self.MARGIN,
+                                    2 * self.MARGIN + self.HUD_HEIGHT,
+                                    self.GUI_WIDTH,
+                                    board_area_height)
+
+    def on_difficulty_change(self, difficulty):
+        self.height_input.active_input = False
+        self.width_input.active_input = False
+        self.mines_input.active_input = False
+        if difficulty == 'EASY':
+            self.n_rows = 10
+            self.n_cols = 10
+            self.n_mines = 10
+        elif difficulty == 'NORMAL':
+            self.n_rows = 16
+            self.n_cols = 16
+            self.n_mines = 40
+        elif difficulty == 'HARD':
+            self.n_rows = 16
+            self.n_cols = 30
+            self.n_mines = 99
+        else:
+            self.height_input.active_input = True
+            self.width_input.active_input = True
+            self.mines_input.active_input = True
+
+        self.height_input.set_value(self.n_rows)
+        self.width_input.set_value(self.n_cols)
+        self.mines_input.set_value(self.n_mines)
+
+        self.init_screen()
+        self.place_gui()
+        self.reset_game()
+
+    def on_rows_enter(self, value):
+        if not value:
+            return False
+
+        value = int(value)
+        if value == 0 or value > self.MAX_BOARD_DIMENSION:
+            return False
+
+        self.n_rows = value
+        self.init_screen()
+        self.place_gui()
+        self.reset_game()
+
+        return True
+
+    def on_cols_enter(self, value):
+        if not value:
+            return False
+
+        value = int(value)
+        if value == 0 or value > self.MAX_BOARD_DIMENSION:
+            return False
+
+        self.n_cols = value
+        self.init_screen()
+        self.place_gui()
+        self.reset_game()
+
+        return True
+
+    def on_mines_enter(self, value):
+        if not value:
+            return False
+
+        value = int(value)
+        if value == 0 or value > self.n_rows * self.n_cols:
+            return False
+
+        self.n_mines = value
+        self.reset_game()
+
+        return True
+
+    def run_main_loop(self):
+        clock = pygame.time.Clock()
+        keep_running = True
+        while keep_running:
+            clock.tick(30)
+            self.timer.set_value(self.board.time)
+            self.current_mines.set_value(self.board.n_mines_left)
+
+            game_status = self.board.game_status
+            if game_status == 'game_over':
+                self.status.set_text("GAME OVER!")
+            elif game_status == 'victory':
+                self.status.set_text("VICTORY!")
+            elif game_status == 'before_start':
+                self.status.set_text("READY TO GO!")
+            else:
+                self.status.set_text("GOOD LUCK!")
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    keep_running = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    self.board.on_mouse_down(event.button)
+                    self.difficulty_selector.on_mouse_down(event.button)
+                    self.height_input.on_mouse_click(event.button)
+                    self.width_input.on_mouse_click(event.button)
+                    self.mines_input.on_mouse_click(event.button)
+                    self.restart_button.on_mouse_down(event.button)
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    self.board.on_mouse_up(event.button)
+                elif event.type == pygame.KEYDOWN:
+                    self.height_input.on_key_press(event.key)
+                    self.width_input.on_key_press(event.key)
+                    self.mines_input.on_key_press(event.key)
+
+            field = self.field.copy()
+            self.board.draw(field)
+
+            self.screen.fill(self.BG_COLOR)
+            self.screen.blit(field, self.board.rect)
+            self.screen.blit(self.difficulty_selector.render(),
+                             self.difficulty_selector.rect)
+
+            self.screen.blit(self.height_input.render(),
+                             self.height_input.rect)
+            self.screen.blit(self.width_input.render(),
+                             self.width_input.rect)
+            self.screen.blit(self.mines_input.render(),
+                             self.mines_input.rect)
+
+            self.screen.blit(self.timer.render(), self.timer.rect)
+            self.screen.blit(self.current_mines.render(),
+                             self.current_mines.rect)
+
+            self.screen.blit(self.status.render(), self.status.rect)
+
+            self.screen.blit(self.restart_button.render(),
+                             self.restart_button.rect)
+
+            pygame.display.flip()
+
+
+def run():
+    pygame.init()
+    pygame.display.set_caption('Minesweeper')
+    pygame.mouse.set_visible(True)
+    game = Game()
+    game.run_main_loop()
