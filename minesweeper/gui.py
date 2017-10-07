@@ -37,7 +37,9 @@ class Label:
 
     def set_text(self, text):
         """Set text."""
+        old_center = self.rect.center
         self.surface = self.font.render(text, False, self.font_color)
+        self.rect = self.surface.get_rect(center=old_center)
 
     def render(self):
         """Return surface to display."""

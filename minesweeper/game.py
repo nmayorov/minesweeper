@@ -180,7 +180,10 @@ class Game:
                                      self.GUI_FONT_COLOR,
                                      "RESTART",
                                      self.board.reset)
-        self.restart_button.rect.topleft = (1.75 * self.MARGIN, self.MARGIN)
+        self.restart_button.rect.center = (
+            self.MARGIN + 0.5 * self.GUI_WIDTH,
+            self.MARGIN + 0.5 * self.HUD_HEIGHT)
+        # self.restart_button.rect.topleft = (1.75 * self.MARGIN, self.MARGIN)
 
         self.place_gui()
 
@@ -194,12 +197,17 @@ class Game:
         self.mines_input.rect.topleft = (
             self.gui_rect.x,
             self.height_input.rect.bottom + 0.4 * self.width_input.rect.height)
-        self.timer.rect.topleft = (
-            self.hud_rect.right - 2 * self.timer.rect.width,
-            self.hud_rect.top)
+
+        hud_width = max(self.timer.rect.width, self.current_mines.rect.width)
+        self.timer.rect.topleft = (self.hud_rect.right - hud_width,
+                                   self.hud_rect.top)
         self.current_mines.rect.topleft = (
             self.timer.rect.left,
             self.timer.rect.bottom + 0.4 * self.timer.rect.height)
+
+        self.status.rect.center = (
+            0.5 * (self.hud_rect.left + self.hud_rect.right - hud_width),
+            self.hud_rect.centery)
 
     def reset_game(self):
         self.board.reset(n_rows=self.n_rows,
