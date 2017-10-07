@@ -104,8 +104,8 @@ class Game:
     HUD_HEIGHT = 30
     MARGIN = 20
     BG_COLOR = pygame.Color('Light Slate Gray')
-    FIELD_BG_COLOR = (220, 220, 220)
-    FIELD_LINES_COLOR = (154, 154, 154)
+    FIELD_BG_COLOR = pygame.Color('#d7dcdc')
+    FIELD_LINES_COLOR = pygame.Color('#738383')
     GUI_FONT_COLOR = pygame.Color('Light Yellow')
     GUI_FONT_SIZE = 12
     HUD_FONT_SIZE = 12
