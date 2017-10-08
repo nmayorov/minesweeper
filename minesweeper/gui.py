@@ -119,7 +119,8 @@ class SelectionGroup:
     def __init__(self, font, font_color,
                  unselected_image, selected_image,
                  title, options,
-                 on_change_callback=None, position=(0, 0)):
+                 on_change_callback=None, position=(0, 0),
+                 initial_value=None):
         if unselected_image.get_size() != selected_image.get_size():
             raise ValueError("Images of selected and unselected buttons "
                              "must have equal size")
@@ -165,15 +166,23 @@ class SelectionGroup:
             y += 1.5 * item_height
 
         self._selected = 0
-        self.callback = on_change_callback
+        if initial_value is not None:
+            for i, option in enumerate(self.options):
+                if option == initial_value:
+                    self._selected = i
+                    break
 
+        self.callback = on_change_callback
         self.surface.fill((0, 0, 0, 0))
         self.surface.blit(self.title_image, title_rect.topleft)
         for option_rect, option_image in zip(option_rects, option_images):
             self.surface.blit(option_image, option_rect)
-        self.surface.blit(self.selected_image, self.button_rects[0])
-        for rect in self.button_rects[1:]:
-            self.surface.blit(self.unselected_image, rect)
+
+        for i, rect in enumerate(self.button_rects):
+            if i == self._selected:
+                self.surface.blit(self.selected_image, rect)
+            else:
+                self.surface.blit(self.unselected_image, rect)
 
     @property
     def selected(self):

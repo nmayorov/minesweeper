@@ -1,4 +1,5 @@
 import os
+import json
 import pygame
 from . board import Board
 from . gui import SelectionGroup, Input, Button, Label
@@ -99,6 +100,7 @@ def create_field(n_rows, n_cols, tile_size, color, line_color):
 
 class Game:
     """Main game class."""
+    STATE_FILE = 'state'
     TILE_SIZE = 20
     GUI_WIDTH = 91
     HUD_HEIGHT = 30
@@ -114,9 +116,18 @@ class Game:
     MIN_BOARD_DIMENSION_DISPLAY = 10
 
     def __init__(self):
-        self.n_rows = 10
-        self.n_cols = 10
-        self.n_mines = 10
+        state_path = os.path.join(os.path.dirname(__file__), self.STATE_FILE)
+        try:
+            with open(state_path) as state_file:
+                state = json.load(state_file)
+        except (IOError, json.JSONDecodeError):
+            state = {}
+
+        self.n_rows = None
+        self.n_cols = None
+        self.n_mines = None
+        self.leaderboard = None
+        self.init_from_state(state)
 
         mine_count_images = create_count_tiles(self.TILE_SIZE,
                                                "kenvector_future.ttf")
@@ -126,7 +137,8 @@ class Game:
 
         self.board = Board(
             self.n_rows, self.n_cols, self.n_mines, self.TILE_SIZE,
-            tile_image, mine_count_images, flag_image, mine_image)
+            tile_image, mine_count_images, flag_image, mine_image,
+            on_status_change_callback=self.on_status_change)
 
         self.field = create_field(self.n_rows, self.n_cols, self.TILE_SIZE,
                                   self.FIELD_BG_COLOR, self.FIELD_LINES_COLOR)
@@ -146,24 +158,29 @@ class Game:
             unselected_image, selected_image,
             "DIFFICULTY",
             ["EASY", "NORMAL", "HARD", "CUSTOM"],
-            position=self.gui_rect.topleft)
+            position=self.gui_rect.topleft,
+            initial_value=state.get('difficulty', 'EASY'))
 
         self.difficulty_selector.rect.centerx = self.gui_rect.centerx
         self.difficulty_selector.rect.y = self.gui_rect.y
         self.difficulty_selector.callback = self.on_difficulty_change
 
+        active_input = self.difficulty_selector.selected == "CUSTOM"
         self.width_input = Input(gui_font, self.GUI_FONT_COLOR,
                                  "WIDTH", self.n_cols,
+                                 active_input=active_input,
                                  width=self.GUI_WIDTH, max_value_length=3,
                                  allowed_symbols=self.DIGITS,
                                  on_enter_callback=self.on_cols_enter)
         self.height_input = Input(gui_font, self.GUI_FONT_COLOR,
                                   "HEIGHT", self.n_rows, width=self.GUI_WIDTH,
+                                  active_input=active_input,
                                   max_value_length=3,
                                   allowed_symbols=self.DIGITS,
                                   on_enter_callback=self.on_rows_enter)
         self.mines_input = Input(gui_font, self.GUI_FONT_COLOR,
                                  "MINES", self.n_mines, width=self.GUI_WIDTH,
+                                 active_input=active_input,
                                  max_value_length=4,
                                  allowed_symbols=self.DIGITS,
                                  on_enter_callback=self.on_mines_enter)
@@ -173,7 +190,7 @@ class Game:
         self.current_mines = Input(gui_font, self.GUI_FONT_COLOR,
                                    "MINES", self.board.n_mines)
 
-        self.status = Label(gui_font, self.GUI_FONT_COLOR, "CLICK TO START",
+        self.status = Label(gui_font, self.GUI_FONT_COLOR, "READY TO GO!",
                             position=self.hud_rect.topleft)
         self.status.rect.center = (self.MARGIN + 0.5 * self.GUI_WIDTH,
                                    self.MARGIN)
@@ -184,6 +201,35 @@ class Game:
                                      self.board.reset)
 
         self.place_gui()
+
+    def set_difficulty(self, difficulty):
+        if difficulty == "EASY":
+            self.n_rows = 10
+            self.n_cols = 10
+            self.n_mines = 10
+        elif difficulty == "NORMAL":
+            self.n_rows = 16
+            self.n_cols = 16
+            self.n_mines = 40
+        elif difficulty == "HARD":
+            self.n_rows = 16
+            self.n_cols = 30
+            self.n_mines = 99
+
+    def init_from_state(self, state):
+        difficulty = state.get('difficulty', 'EASY')
+        if difficulty not in ['EASY', 'NORMAL', 'HARD', 'CUSTOM']:
+            difficulty = 'EASY'
+
+        if "leaderboard" in state:
+            self.leaderboard = state['leaderboard']
+        else:
+            self.leaderboard = {'EASY': [], 'NORMAL': [], 'HARD': []}
+
+        self.n_rows = state.get('n_rows', 10)
+        self.n_cols = state.get('n_cols', 10)
+        self.n_mines = state.get('n_mines', 10)
+        self.set_difficulty(difficulty)
 
     def place_gui(self):
         self.width_input.rect.topleft = (
@@ -244,23 +290,22 @@ class Game:
                                     self.GUI_WIDTH,
                                     board_area_height)
 
+    def on_status_change(self, new_status):
+        if new_status == 'game_over':
+            self.status.set_text("GAME OVER!")
+        elif new_status == 'victory':
+            self.status.set_text("VICTORY!")
+        elif new_status == 'before_start':
+            self.status.set_text("READY TO GO!")
+        else:
+            self.status.set_text("GOOD LUCK!")
+
     def on_difficulty_change(self, difficulty):
         self.height_input.active_input = False
         self.width_input.active_input = False
         self.mines_input.active_input = False
-        if difficulty == 'EASY':
-            self.n_rows = 10
-            self.n_cols = 10
-            self.n_mines = 10
-        elif difficulty == 'NORMAL':
-            self.n_rows = 16
-            self.n_cols = 16
-            self.n_mines = 40
-        elif difficulty == 'HARD':
-            self.n_rows = 16
-            self.n_cols = 30
-            self.n_mines = 99
-        else:
+        self.set_difficulty(difficulty)
+        if difficulty == "CUSTOM":
             self.height_input.active_input = True
             self.width_input.active_input = True
             self.mines_input.active_input = True
@@ -324,17 +369,6 @@ class Game:
             clock.tick(30)
             self.timer.set_value(self.board.time)
             self.current_mines.set_value(self.board.n_mines_left)
-
-            game_status = self.board.game_status
-            if game_status == 'game_over':
-                self.status.set_text("GAME OVER!")
-            elif game_status == 'victory':
-                self.status.set_text("VICTORY!")
-            elif game_status == 'before_start':
-                self.status.set_text("READY TO GO!")
-            else:
-                self.status.set_text("GOOD LUCK!")
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     keep_running = False
@@ -377,6 +411,17 @@ class Game:
                              self.restart_button.rect)
 
             pygame.display.flip()
+
+        state = {
+            "difficulty": self.difficulty_selector.selected,
+            "n_rows": self.n_rows,
+            "n_cols": self.n_cols,
+            "n_mines": self.n_mines,
+            "leaderboard": self.leaderboard
+        }
+        state_path = os.path.join(os.path.dirname(__file__), self.STATE_FILE)
+        with open(state_path, "w") as state_file:
+            json.dump(state, state_file)
 
 
 def run():

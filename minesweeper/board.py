@@ -57,13 +57,18 @@ class Board:
         Image for a flag.
     mine_image : pygame.Surface
         Image for a mine.
+    on_status_change_callback : callable
+        Call when game status changes. The signature is
+        ``on_status_change_callback(news_status)``, where ``new_status`` is
+        one of ["before_start", "running", "victory", "game_over"].
     """
     TILE_CLOSED = 0
     TILE_OPENED = 1
     TILE_CHECKED = 2
 
     def __init__(self, n_rows, n_cols, n_mines, tile_size, tile_image,
-                 mine_count_images, flag_image, mine_image):
+                 mine_count_images, flag_image, mine_image,
+                 on_status_change_callback=None):
         self.n_rows = n_rows
         self.n_cols = n_cols
         self.n_mines = n_mines
@@ -94,6 +99,9 @@ class Board:
         self.tiles = None
         self.tiles_group = None
         self._init_tiles()
+
+        self.on_status_change_callback = on_status_change_callback
+        self.game_status = "before_start"
 
     def _init_tiles(self):
         """Initialize list of tiles with closed tiles."""
@@ -132,18 +140,12 @@ class Board:
         self.tiles_to_open = self.n_rows * self.n_cols - self.n_mines
         self._init_tiles()
         self._time = 0
+        self._change_game_status("before_start")
 
-    @property
-    def game_status(self):
-        """Return game status."""
-        if self.losing_indices is not None:
-            return "game_over"
-        elif self.tiles_to_open == 0:
-            return "victory"
-        elif self.start_time is None:
-            return "before_start"
-        else:
-            return "running"
+    def _change_game_status(self, new_status):
+        self.game_status = new_status
+        if self.on_status_change_callback is not None:
+            self.on_status_change_callback(self.game_status)
 
     @property
     def time(self):
@@ -228,6 +230,7 @@ class Board:
                     queue.append((k, l))
 
         if self.tiles_to_open == 0:
+            self._change_game_status("victory")
             self.n_mines_left = 0
             self.tile_status[self.is_mine] = self.TILE_CHECKED
 
@@ -247,6 +250,7 @@ class Board:
             return
 
         if self.is_mine[i, j]:
+            self._change_game_status("game_over")
             self.losing_indices = (i, j)
             self.tile_status[i, j] = self.TILE_OPENED
             return
@@ -255,6 +259,7 @@ class Board:
             if self.game_status == "before_start":
                 self._put_mines(i, j)
                 self.start_time = pygame.time.get_ticks()
+                self._change_game_status("running")
             self._open_tiles(i, j)
             return
 
@@ -269,6 +274,7 @@ class Board:
                 if self.tile_status[k, l] == self.TILE_CLOSED:
                     if self.is_mine[k, l]:
                         self.losing_indices = (k, l)
+                        self._change_game_status("game_over")
                         self.tile_status[k, l] = self.TILE_OPENED
                         return
 
