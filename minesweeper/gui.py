@@ -263,7 +263,7 @@ class Input:
         self.font = font
         self.font_color = font_color
         self.width = width
-        self.active_input = active_input
+        self._active_input = active_input
         self.in_input = False
         self.title = title
         self.value = str(value)
@@ -311,10 +311,10 @@ class Input:
                                  value_width + 2 * margin,
                                  value_height)
 
-        if self.active_input:
+        if self._active_input:
             frame = create_frame_image(value_rect.width,
-                                         value_rect.height,
-                                         self.frame_color)
+                                       value_rect.height,
+                                       self.frame_color)
             surface.blit(frame, value_rect)
         surface.blit(text, text_rect)
         self.surface = surface
@@ -322,21 +322,30 @@ class Input:
         if self.rect is not None:
             self.rect.size = surface.get_size()
 
+    @property
+    def active_input(self):
+        return self._active_input
+
+    @active_input.setter
+    def active_input(self, value):
+        if value != self._active_input:
+            self._active_input = value
+            self._prepare_render()
+
     def render(self):
         """Return surface to display."""
         return self.surface
 
     def set_value(self, value):
         """Set value."""
-        if value == self.current_value:
-            return
-        self.current_value = str(value)
+        value = str(value)
+        self.current_value = value
         self.value = self.current_value
         self._prepare_render()
 
     def on_mouse_click(self, button):
         """Handle mouse click."""
-        if not self.active_input or button != LEFT_CLICK:
+        if not self._active_input or button != LEFT_CLICK:
             return
 
         mouse_pos = pygame.mouse.get_pos()
@@ -363,12 +372,10 @@ class Input:
         elif key == pygame.K_RETURN:
             self.in_input = False
             if self.on_enter_callback is not None:
-                if self.on_enter_callback(self.current_value):
-                    self.value = self.current_value
-                else:
-                    self.current_value = self.value
+                new_value = str(self.on_enter_callback(self.current_value))
             else:
-                self.value = self.current_value
+                new_value = self.current_value
+            self.set_value(new_value)
             self._prepare_render()
         else:
             if len(self.current_value) == self.max_value_length:

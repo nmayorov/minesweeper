@@ -9,6 +9,7 @@ ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'resources')
 
 
 def load_image(name, size=None):
+    """Load image and optionally resize it."""
     path = os.path.join(ASSETS_DIR, name)
     try:
         image = pygame.image.load(path)
@@ -203,6 +204,10 @@ class Game:
         self.place_gui()
 
     def set_difficulty(self, difficulty):
+        """Adjust game parameters given difficulty.
+
+        Custom difficulty is not handled in this function.
+        """
         if difficulty == "EASY":
             self.n_rows = 10
             self.n_cols = 10
@@ -217,6 +222,7 @@ class Game:
             self.n_mines = 99
 
     def init_from_state(self, state):
+        """Initialize game from state dictionary."""
         difficulty = state.get('difficulty', 'EASY')
         if difficulty not in ['EASY', 'NORMAL', 'HARD', 'CUSTOM']:
             difficulty = 'EASY'
@@ -232,6 +238,7 @@ class Game:
         self.set_difficulty(difficulty)
 
     def place_gui(self):
+        """Place GUI element according to the current settings."""
         self.width_input.rect.topleft = (
             self.gui_rect.x,
             self.gui_rect.y + 1.225 * self.difficulty_selector.rect.height)
@@ -254,11 +261,13 @@ class Game:
             self.hud_rect.centery)
 
     def reset_game(self):
+        """Reset the game."""
         self.board.reset(n_rows=self.n_rows,
                          n_cols=self.n_cols,
                          n_mines=self.n_mines)
 
     def init_screen(self):
+        """Initialize screen and compute rectangles for different regions."""
         board_area_width = \
             max(self.n_cols, self.MIN_BOARD_DIMENSION_DISPLAY) * self.TILE_SIZE
         board_area_height = \
@@ -291,6 +300,7 @@ class Game:
                                     board_area_height)
 
     def on_status_change(self, new_status):
+        """Handle game status change."""
         if new_status == 'game_over':
             self.status.set_text("GAME OVER!")
         elif new_status == 'victory':
@@ -301,6 +311,7 @@ class Game:
             self.status.set_text("GOOD LUCK!")
 
     def on_difficulty_change(self, difficulty):
+        """Handle difficulty change."""
         self.height_input.active_input = False
         self.width_input.active_input = False
         self.mines_input.active_input = False
@@ -318,51 +329,44 @@ class Game:
         self.place_gui()
         self.reset_game()
 
-    def on_rows_enter(self, value):
+    def adjust_mine_count(self):
+        """Restrict mines count."""
+        self.n_mines = min(self.n_mines, self.n_rows * self.n_cols - 1)
+
+    def set_game_parameter(self, parameter, max_value, value):
+        """Set either n_rows, n_cols, n_mines."""
         if not value:
-            return False
+            value = 1
 
         value = int(value)
-        if value == 0 or value > self.MAX_BOARD_DIMENSION:
-            return False
-
-        self.n_rows = value
+        value = min(max(1, value), max_value)
+        setattr(self, parameter, value)
+        self.adjust_mine_count()
         self.init_screen()
         self.place_gui()
         self.reset_game()
+        return value
 
-        return True
+    def on_rows_enter(self, value):
+        """Handle n_rows input."""
+        return self.set_game_parameter('n_rows',
+                                       self.MAX_BOARD_DIMENSION,
+                                       value)
 
     def on_cols_enter(self, value):
-        if not value:
-            return False
-
-        value = int(value)
-        if value == 0 or value > self.MAX_BOARD_DIMENSION:
-            return False
-
-        self.n_cols = value
-        self.init_screen()
-        self.place_gui()
-        self.reset_game()
-
-        return True
+        """Handle n_cols input."""
+        return self.set_game_parameter('n_cols',
+                                       self.MAX_BOARD_DIMENSION,
+                                       value)
 
     def on_mines_enter(self, value):
-        if not value:
-            return False
-
-        value = int(value)
-        if value == 0 or value > self.n_rows * self.n_cols:
-            return False
-
-        self.n_mines = value
-        self.reset_game()
-        self.place_gui()
-
-        return True
+        """Hand n_mines input."""
+        return self.set_game_parameter('n_mines',
+                                       self.n_rows * self.n_cols - 1,
+                                       value)
 
     def run_main_loop(self):
+        """Start main game loop."""
         clock = pygame.time.Clock()
         keep_running = True
         while keep_running:
