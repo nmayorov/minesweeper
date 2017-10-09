@@ -32,13 +32,13 @@ class Label:
     def __init__(self, font, font_color, text, position=(0, 0)):
         self.font = font
         self.font_color = font_color
-        self.surface = font.render(text, False, font_color)
+        self.surface = font.render(text, True, font_color)
         self.rect = self.surface.get_rect(topleft=position)
 
     def set_text(self, text):
         """Set text."""
         old_center = self.rect.center
-        self.surface = self.font.render(text, False, self.font_color)
+        self.surface = self.font.render(text, True, self.font_color)
         self.rect = self.surface.get_rect(center=old_center)
 
     def render(self):
@@ -69,7 +69,7 @@ class Button:
     """
     def __init__(self, font, font_color, text, on_click_callback,
                  frame_color=None, position=(0, 0)):
-        self.text = font.render(text, False, font_color)
+        self.text = font.render(text, True, font_color)
         if frame_color is None:
             frame_color = font_color
         self.boarder = create_frame_image(1.2 * self.text.get_width(),
@@ -131,8 +131,8 @@ class SelectionGroup:
         self.options = options
         self.n_options = len(options)
 
-        self.title_image = font.render(title, False, font_color)
-        option_images = [font.render(option, False, font_color)
+        self.title_image = font.render(title, True, font_color)
+        option_images = [font.render(option, True, font_color)
                          for option in options]
 
         item_height = max(unselected_image.get_height(), font.get_height())
@@ -292,7 +292,7 @@ class Input:
             value += '_'
 
         text = self.font.render(self.title + self.delimiter + value,
-                                False,
+                                True,
                                 self.font_color)
 
         if self.width is None:

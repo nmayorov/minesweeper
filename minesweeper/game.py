@@ -193,8 +193,6 @@ class Game:
 
         self.status = Label(gui_font, self.GUI_FONT_COLOR, "READY TO GO!",
                             position=self.hud_rect.topleft)
-        self.status.rect.center = (self.MARGIN + 0.5 * self.GUI_WIDTH,
-                                   self.MARGIN)
 
         self.restart_button = Button(gui_font,
                                      self.GUI_FONT_COLOR,
@@ -241,7 +239,7 @@ class Game:
         """Place GUI element according to the current settings."""
         self.width_input.rect.topleft = (
             self.gui_rect.x,
-            self.gui_rect.y + 1.225 * self.difficulty_selector.rect.height)
+            self.gui_rect.y + 1.2 * self.difficulty_selector.rect.height)
         self.height_input.rect.topleft = (
             self.gui_rect.x,
             self.width_input.rect.bottom + 0.4 * self.height_input.rect.height)
@@ -249,16 +247,24 @@ class Game:
             self.gui_rect.x,
             self.height_input.rect.bottom + 0.4 * self.width_input.rect.height)
 
+        hud_width = self.place_hud()
+
+        self.restart_button.rect.top = self.timer.rect.top
+        self.restart_button.rect.centerx = 0.5 * (self.hud_rect.left
+                                                  + self.hud_rect.right
+                                                  - hud_width)
+        self.status.rect.top = self.current_mines.rect.top
+        self.status.rect.centerx = self.restart_button.rect.centerx
+
+    def place_hud(self):
+        """Place timer and mines info and return width of this block."""
         hud_width = max(self.timer.rect.width, self.current_mines.rect.width)
         self.timer.rect.topleft = (self.hud_rect.right - hud_width,
                                    self.hud_rect.top)
         self.current_mines.rect.topleft = (
             self.timer.rect.left,
             self.timer.rect.bottom + 0.4 * self.timer.rect.height)
-
-        self.restart_button.rect.center = (
-            0.5 * (self.hud_rect.left + self.hud_rect.right - hud_width),
-            self.hud_rect.centery)
+        return hud_width
 
     def reset_game(self):
         """Reset the game."""
@@ -373,6 +379,7 @@ class Game:
             clock.tick(30)
             self.timer.set_value(self.board.time)
             self.current_mines.set_value(self.board.n_mines_left)
+            self.place_hud()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     keep_running = False
