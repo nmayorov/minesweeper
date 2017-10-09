@@ -135,6 +135,9 @@ class Game:
         tile_image = load_image('tile.png', self.TILE_SIZE)
         mine_image = load_image('mine.png', self.TILE_SIZE)
         flag_image = load_image('flag.png', self.TILE_SIZE)
+        gui_font = load_font("kenvector_future_thin.ttf", self.GUI_FONT_SIZE)
+        unselected_image = load_image("radio.png")
+        selected_image = load_image("radio_checked.png")
 
         self.board = Board(
             self.n_rows, self.n_cols, self.n_mines, self.TILE_SIZE,
@@ -150,9 +153,6 @@ class Game:
         self.gui_rect = None
         self.init_screen()
 
-        gui_font = load_font("kenvector_future_thin.ttf", self.GUI_FONT_SIZE)
-        unselected_image = load_image("radio.png")
-        selected_image = load_image("radio_checked.png")
         self.difficulty_selector = SelectionGroup(
             gui_font,
             self.GUI_FONT_COLOR,
