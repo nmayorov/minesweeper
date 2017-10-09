@@ -5,7 +5,7 @@ from . board import Board
 from . gui import SelectionGroup, Input, Button, Label
 
 
-ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'resources')
+ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'assets')
 
 
 def load_image(name, size=None):
