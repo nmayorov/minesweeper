@@ -395,6 +395,9 @@ class Board:
 
     def on_mouse_down(self, button):
         """Process mouse button down."""
+        if self.game_status in ["before_start", "victory", "game_over"]:
+            return
+
         if button == RIGHT_BUTTON:
             i, j = self._get_tile_indices_at_mouse()
             if i is not None and j is not None:
@@ -403,14 +406,14 @@ class Board:
 
     def on_mouse_up(self, button):
         """Process mouse button up."""
-        if (self.game_status in ["victory", "game_over"]
-                or button != LEFT_BUTTON):
+        if self.game_status in ["victory", "game_over"]:
             return
 
-        i, j = self._get_tile_indices_at_mouse()
-        if i is not None and j is not None:
-            self._open_tile(i, j)
-            self._update_view()
+        if button == LEFT_BUTTON:
+            i, j = self._get_tile_indices_at_mouse()
+            if i is not None and j is not None:
+                self._open_tile(i, j)
+                self._update_view()
 
     def draw(self, surface):
         """Draw board on surface."""

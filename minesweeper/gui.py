@@ -4,13 +4,13 @@ import pygame
 LEFT_CLICK = 1
 
 
-def create_frame_image(width, height, color, line_width=1):
+def create_frame_image(width, height, frame_color, line_width=1):
     ret = pygame.Surface((width, height), pygame.SRCALPHA)
-    pygame.draw.line(ret, color, (0, 0), (width, 0), line_width)
-    pygame.draw.line(ret, color, (0, 0), (0, height), line_width)
-    pygame.draw.line(ret, color, (width - 1, 0), (width - 1, height),
+    pygame.draw.line(ret, frame_color, (0, 0), (width, 0), line_width)
+    pygame.draw.line(ret, frame_color, (0, 0), (0, height), line_width)
+    pygame.draw.line(ret, frame_color, (width - 1, 0), (width - 1, height),
                      line_width)
-    pygame.draw.line(ret, color, (0, height - 1), (width, height - 1),
+    pygame.draw.line(ret, frame_color, (0, height - 1), (width, height - 1),
                      line_width)
     return ret
 
@@ -70,9 +70,10 @@ class Button:
     def __init__(self, font, font_color, text, on_click_callback,
                  frame_color=None, position=(0, 0)):
         self.text = font.render(text, True, font_color)
+        margin = font.size("_")[0]
         if frame_color is None:
             frame_color = font_color
-        self.boarder = create_frame_image(1.2 * self.text.get_width(),
+        self.boarder = create_frame_image(self.text.get_width() + margin,
                                           1.2 * self.text.get_height(),
                                           frame_color)
         self.rect = self.boarder.get_rect()
@@ -85,8 +86,8 @@ class Button:
         """Return surface to display."""
         return self.boarder
 
-    def on_mouse_down(self, button):
-        """Handle mouse down."""
+    def on_mouse_up(self, button):
+        """Handle mouse button up."""
         if button != LEFT_CLICK or self.on_click_callback is None:
             return
 
@@ -189,8 +190,8 @@ class SelectionGroup:
         """Currently selected option."""
         return self.options[self._selected]
 
-    def on_mouse_down(self, button):
-        """Handle mouse down."""
+    def on_mouse_up(self, button):
+        """Handle mouse button up."""
         if button != LEFT_CLICK:
             return
 
@@ -258,7 +259,7 @@ class Input:
     """
     def __init__(self, font, font_color, title, value, delimiter="  ",
                  frame_color=None, active_input=False,
-                 width=None, max_value_length=None, allowed_symbols=None,
+                 width=None, max_value_length=None, key_filter=None,
                  on_enter_callback=None, position=(0, 0)):
         self.font = font
         self.font_color = font_color
@@ -273,7 +274,7 @@ class Input:
             frame_color = font_color
         self.frame_color = frame_color
         self.max_value_length = max_value_length
-        self.allowed_symbols = allowed_symbols
+        self.key_filter = key_filter
         self.on_enter_callback = on_enter_callback
 
         self.surface = None
@@ -343,8 +344,8 @@ class Input:
         self.value = self.current_value
         self._prepare_render()
 
-    def on_mouse_click(self, button):
-        """Handle mouse click."""
+    def on_mouse_up(self, button):
+        """Handle mouse button up."""
         if not self._active_input or button != LEFT_CLICK:
             return
 
@@ -360,8 +361,8 @@ class Input:
 
         self._prepare_render()
 
-    def on_key_press(self, key):
-        """Handle key press."""
+    def on_key_down(self, key):
+        """Handle key down."""
         if not self.in_input:
             return
 
@@ -382,7 +383,91 @@ class Input:
                 return
 
             key_name = pygame.key.name(key)
-            if (self.allowed_symbols is None or
-                    key_name in self.allowed_symbols):
+            if self.key_filter is None or self.key_filter(key_name):
                 self.current_value += key_name
+                self._prepare_render()
+
+
+class InputDialogue:
+    """Dialogue to input some value.
+
+    Parameters
+    ----------
+    font : pygame.Font
+        Font to use.
+    font_color : pygame.Color compatible
+        Color for font.
+    title : string
+        Input title.
+    on_enter_callback : callable
+        Call on enter like ``on_enter_callback(value)``.
+    max_length : int, optional
+        Maximum allowed length of the value. Unlimited by default.
+    key_filter : callable, optional
+        Called like ``key_filter(key_name)`` to determine whether a symbol
+        should be accepted.
+    """
+    def __init__(self, font, font_color, title, on_enter_callback,
+                 max_length=None, key_filter=None):
+        self.font = font
+        self.font_color = font_color
+        self.title_image = font.render(title, True, font_color)
+        line_height = font.get_height()
+        vertical_margin = 0.5 * line_height
+        horizontal_margin = font.size("_")[0]
+
+        width = self.title_image.get_width() + 2 * horizontal_margin
+        height = 3 * vertical_margin + 2 * line_height
+
+        self.surface = create_frame_image(width, height, self.font_color)
+        self.title_image_rect = self.title_image.get_rect(x=horizontal_margin,
+                                                          y=vertical_margin)
+
+        self.rect = self.surface.get_rect()
+
+        self.value_top = 2 * vertical_margin + line_height
+
+        self.value = ""
+        self.on_enter_callback = on_enter_callback
+        self.max_length = max_length
+        self.key_filter = key_filter
+
+        self._prepare_render()
+
+    def _prepare_render(self):
+        width, height = self.surface.get_size()
+        self.surface = create_frame_image(width, height, self.font_color)
+        # self.surface.fill((0, 0, 0, 0))
+        self.surface.blit(self.title_image, self.title_image_rect)
+        value_image = self.font.render(self.value + "_", True, self.font_color)
+        rect = value_image.get_rect(top=self.value_top,
+                                    centerx=0.5 * self.surface.get_width())
+        self.surface.blit(value_image, rect)
+
+    def render(self):
+        """Return surface to display."""
+        return self.surface
+
+    def set_value(self, value):
+        """Set value."""
+        self.value = value
+        self._prepare_render()
+
+    def on_key_down(self, key):
+        """Handle key down."""
+        if key == pygame.K_BACKSPACE:
+            if self.value:
+                self.value = self.value[:-1]
+                self._prepare_render()
+                self._prepare_render()
+        elif key == pygame.K_RETURN:
+            self.on_enter_callback(self.value)
+        else:
+            if (self.max_length is not None
+                    and len(self.value) == self.max_length):
+                return
+
+            key_name = pygame.key.name(key)
+            if self.key_filter is None or self.key_filter(key_name):
+                self.value += key_name
                 self._prepare_render()
