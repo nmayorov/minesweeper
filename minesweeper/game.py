@@ -223,7 +223,7 @@ class Game:
             initial_value=state.get('difficulty', 'EASY'))
 
         self.difficulty_selector.rect.centerx = self.gui_rect.centerx
-        self.difficulty_selector.rect.y = self.gui_rect.y
+        self.difficulty_selector.rect.y = self.MARGIN
         self.difficulty_selector.callback = self.on_difficulty_change
 
         active_input = self.difficulty_selector.selected == "CUSTOM"
@@ -262,9 +262,6 @@ class Game:
         self.show_leaderboard_button = Button(gui_font, self.GUI_FONT_COLOR,
                                               "LEADER BOARD",
                                               self.show_leaderboard)
-        self.show_leaderboard_button.rect.top = self.MARGIN
-        self.show_leaderboard_button.rect.centerx = (self.MARGIN
-                                                     + 0.5 * self.GUI_WIDTH)
 
         leaderboard_width = (
             self.GUI_WIDTH + 2 * self.MARGIN
@@ -342,7 +339,8 @@ class Game:
         """Place GUI element according to the current settings."""
         self.width_input.rect.topleft = (
             self.gui_rect.x,
-            self.gui_rect.y + 1.2 * self.difficulty_selector.rect.height)
+            self.difficulty_selector.rect.bottom
+            + 0.2 * self.difficulty_selector.rect.height)
         self.height_input.rect.topleft = (
             self.gui_rect.x,
             self.width_input.rect.bottom + 0.4 * self.height_input.rect.height)
@@ -356,6 +354,11 @@ class Game:
         self.restart_button.rect.centerx = 0.5 * (self.hud_rect.left
                                                   + self.hud_rect.right
                                                   - hud_width)
+
+        self.show_leaderboard_button.rect.bottom = (self.screen_rect.height
+                                                    - self.MARGIN)
+        self.show_leaderboard_button.rect.centerx = (self.MARGIN
+                                                     + 0.5 * self.GUI_WIDTH)
 
         screen_center = self.screen.get_rect().centerx
         self.status.rect.top = self.current_mines.rect.top
