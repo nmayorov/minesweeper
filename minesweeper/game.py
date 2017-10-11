@@ -26,6 +26,25 @@ def load_image(name, size=None):
     return image
 
 
+class Timer:
+    def __init__(self, on_time_event):
+        self.on_time_event = on_time_event
+        self.start_time = None
+        self.interval = None
+        self.running = False
+
+    def start(self, interval):
+        self.running = True
+        self.interval = interval
+        self.start_time = pygame.time.get_ticks()
+
+    def check(self):
+        if (self.running and
+                pygame.time.get_ticks() - self.start_time >= self.interval):
+            self.running = False
+            self.on_time_event()
+
+
 def load_font(name, size):
     path = os.path.join(ASSETS_DIR, name)
     font = pygame.font.Font(path, size)
@@ -260,11 +279,11 @@ class Game:
                                         max_length=self.MAX_NAME_LENGTH,
                                         key_filter=is_key_suitable_for_name)
 
-        self.victory_time = Input(gui_font, self.GUI_FONT_COLOR,
-                                  "VICTORY! YOUR TIME IS",
-                                  "")
+        self.victory_time = Label(gui_font, self.GUI_FONT_COLOR, "")
+        self.show_name_input_timer = Timer(self.show_name_input)
 
         self.place_gui()
+        self.keep_running = None
         self.mode = "game"
 
     def init_screen(self):
@@ -345,11 +364,12 @@ class Game:
         self.leaderboard.rect.top = self.MARGIN
         self.leaderboard.rect.centerx = screen_center
 
-        self.name_input.rect.top = 2 * self.MARGIN
-        self.name_input.rect.centerx = screen_center
-
         self.victory_time.rect.top = self.MARGIN
         self.victory_time.rect.centerx = self.screen_rect.centerx
+
+        self.name_input.rect.top = (self.victory_time.rect.bottom
+                                    + self.victory_time.rect.height)
+        self.name_input.rect.centerx = screen_center
 
     def place_hud(self):
         """Place timer and mines info and return width of this block."""
@@ -388,14 +408,19 @@ class Game:
             self.status.set_text("VICTORY!")
             if self.leaderboard.needs_update(self.difficulty_selector.selected,
                                              self.board.time):
-                self.mode = "name_input"
-                self.victory_time.set_value(self.board.time)
-                self.name_input.set_value("")
-                self.place_gui()
+                self.show_name_input_timer.start(
+                    self.DELAY_BEFORE_NAME_INPUT_MS)
         elif new_status == 'before_start':
             self.status.set_text("READY TO GO!")
         else:
             self.status.set_text("GOOD LUCK!")
+
+    def show_name_input(self):
+        self.mode = "name_input"
+        self.victory_time.set_text("YOUR TIME IS {} SECONDS!"
+                                   .format(self.board.time))
+        self.name_input.set_value("")
+        self.place_gui()
 
     def on_difficulty_change(self, difficulty):
         """Handle difficulty change."""
@@ -448,86 +473,98 @@ class Game:
                                        self.n_rows * self.n_cols - 1,
                                        value)
 
+    def draw_all(self):
+        """Draw all elements."""
+        self.screen.fill(self.BG_COLOR)
+
+        if self.mode == "leaderboard":
+            self.screen.blit(self.leaderboard.render(),
+                             self.leaderboard.rect)
+            pygame.display.flip()
+            return
+        elif self.mode == "name_input":
+            self.screen.blit(self.name_input.render(),
+                             self.name_input.rect)
+            self.screen.blit(self.victory_time.render(),
+                             self.victory_time.rect)
+            pygame.display.flip()
+            return
+
+        field = self.field.copy()
+        self.board.draw(field)
+        self.screen.blit(field, self.board.rect)
+        self.screen.blit(self.difficulty_selector.render(),
+                         self.difficulty_selector.rect)
+
+        self.screen.blit(self.height_input.render(),
+                         self.height_input.rect)
+        self.screen.blit(self.width_input.render(),
+                         self.width_input.rect)
+        self.screen.blit(self.mines_input.render(),
+                         self.mines_input.rect)
+
+        self.screen.blit(self.timer.render(), self.timer.rect)
+        self.screen.blit(self.current_mines.render(),
+                         self.current_mines.rect)
+
+        self.screen.blit(self.status.render(), self.status.rect)
+
+        self.screen.blit(self.restart_button.render(),
+                         self.restart_button.rect)
+        self.screen.blit(self.show_leaderboard_button.render(),
+                         self.show_leaderboard_button.rect)
+
+        pygame.display.flip()
+
+    def process_events(self):
+        """Process input events."""
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.keep_running = False
+                break
+
+            if self.mode == "leaderboard":
+                if event.type == pygame.MOUSEBUTTONUP:
+                    self.mode = "game"
+                break
+            elif self.mode == "name_input":
+                if event.type == pygame.KEYDOWN:
+                    self.name_input.on_key_down(event.key)
+                break
+
+            # if self.show_name_input_timer.running:
+            #     continue
+
+            if event.type == pygame.MOUSEBUTTONUP:
+                self.difficulty_selector.on_mouse_up(event.button)
+                self.height_input.on_mouse_up(event.button)
+                self.width_input.on_mouse_up(event.button)
+                self.mines_input.on_mouse_up(event.button)
+                self.restart_button.on_mouse_up(event.button)
+                self.show_leaderboard_button.on_mouse_up(event.button)
+                self.board.on_mouse_up(event.button)
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.board.on_mouse_down(event.button)
+            elif event.type == pygame.KEYDOWN:
+                self.height_input.on_key_down(event.key)
+                self.width_input.on_key_down(event.key)
+                self.mines_input.on_key_down(event.key)
+
     def start_main_loop(self):
         """Start main game loop."""
         clock = pygame.time.Clock()
-        keep_running = True
-        while keep_running:
+        self.keep_running = True
+        while self.keep_running:
             clock.tick(30)
             self.timer.set_value(self.board.time)
             self.current_mines.set_value(self.board.n_mines_left)
             self.place_hud()
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    keep_running = False
-                    break
-
-                if self.mode == "leaderboard":
-                    if event.type == pygame.MOUSEBUTTONUP:
-                        self.mode = "game"
-                    break
-                elif self.mode == "name_input":
-                    if event.type == pygame.KEYDOWN:
-                        self.name_input.on_key_down(event.key)
-                    break
-
-                if event.type == pygame.MOUSEBUTTONUP:
-                    self.difficulty_selector.on_mouse_up(event.button)
-                    self.height_input.on_mouse_up(event.button)
-                    self.width_input.on_mouse_up(event.button)
-                    self.mines_input.on_mouse_up(event.button)
-                    self.restart_button.on_mouse_up(event.button)
-                    self.show_leaderboard_button.on_mouse_up(event.button)
-                    self.board.on_mouse_up(event.button)
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.board.on_mouse_down(event.button)
-                elif event.type == pygame.KEYDOWN:
-                    self.height_input.on_key_down(event.key)
-                    self.width_input.on_key_down(event.key)
-                    self.mines_input.on_key_down(event.key)
-
-            self.screen.fill(self.BG_COLOR)
-
-            if self.mode == "leaderboard":
-                self.screen.blit(self.leaderboard.render(),
-                                 self.leaderboard.rect)
-                pygame.display.flip()
-                continue
-            elif self.mode == "name_input":
-                self.screen.blit(self.name_input.render(),
-                                 self.name_input.rect)
-                self.screen.blit(self.victory_time.render(),
-                                 self.victory_time.rect)
-                pygame.display.flip()
-                continue
-
-            field = self.field.copy()
-            self.board.draw(field)
-            self.screen.blit(field, self.board.rect)
-            self.screen.blit(self.difficulty_selector.render(),
-                             self.difficulty_selector.rect)
-
-            self.screen.blit(self.height_input.render(),
-                             self.height_input.rect)
-            self.screen.blit(self.width_input.render(),
-                             self.width_input.rect)
-            self.screen.blit(self.mines_input.render(),
-                             self.mines_input.rect)
-
-            self.screen.blit(self.timer.render(), self.timer.rect)
-            self.screen.blit(self.current_mines.render(),
-                             self.current_mines.rect)
-
-            self.screen.blit(self.status.render(), self.status.rect)
-
-            self.screen.blit(self.restart_button.render(),
-                             self.restart_button.rect)
-            self.screen.blit(self.show_leaderboard_button.render(),
-                             self.show_leaderboard_button.rect)
-
-            pygame.display.flip()
+            self.process_events()
+            self.show_name_input_timer.check()
+            self.draw_all()
 
     def save_state(self):
+        """Save game state on disk."""
         state = {
             "difficulty": self.difficulty_selector.selected,
             "n_rows": self.n_rows,
