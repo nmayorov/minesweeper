@@ -26,7 +26,24 @@ def load_image(name, size=None):
     return image
 
 
+def load_font(name, size):
+    path = os.path.join(ASSETS_DIR, name)
+    try:
+        font = pygame.font.Font(path, size)
+    except pygame.error as error:
+        print('Cannot load font: ', path)
+        raise SystemError(error)
+    return font
+
+
 class Timer:
+    """Execute event on timer.
+
+    Parameters
+    ----------
+    on_time_event L callable
+        Call this event on timer.
+    """
     def __init__(self, on_time_event):
         self.on_time_event = on_time_event
         self.start_time = None
@@ -34,21 +51,19 @@ class Timer:
         self.running = False
 
     def start(self, interval):
+        """Start timer now and trigger event after `interval`."""
         self.running = True
         self.interval = interval
         self.start_time = pygame.time.get_ticks()
 
     def check(self):
+        """Check whether event occurred.
+
+        Must be called continuously in the main loop."""
         if (self.running and
                 pygame.time.get_ticks() - self.start_time >= self.interval):
             self.running = False
             self.on_time_event()
-
-
-def load_font(name, size):
-    path = os.path.join(ASSETS_DIR, name)
-    font = pygame.font.Font(path, size)
-    return font
 
 
 def create_count_tiles(tile_size, font_name):
@@ -100,41 +115,6 @@ def create_count_tiles(tile_size, font_name):
         tiles.append(tile)
 
     return tiles
-
-
-def create_field(n_rows, n_cols, tile_size, bg_color, line_color):
-    """Create a checkered field.
-
-    Parameters
-    ----------
-    n_rows, n_cols : int
-        Number of rows and columns.
-    tile_size : int
-        Length of tile's side.
-    bg_color : pygame.Color compatible
-        Background color.
-    line_color : pygame.Color compatible
-        Color of lines.
-
-    Returns
-    -------
-    pygame.Surface
-        Image of the field.
-    """
-    field = pygame.Surface((n_cols * tile_size, n_rows * tile_size))
-    field.fill(bg_color)
-
-    for i in range(n_rows):
-        pygame.draw.line(field, line_color,
-                         (0, i * tile_size),
-                         (n_cols * tile_size, i * tile_size))
-
-    for j in range(n_cols):
-        pygame.draw.line(field, line_color,
-                         (j * tile_size, 0),
-                         (j * tile_size, n_rows * tile_size))
-
-    return field
 
 
 def is_key_suitable_for_name(key_name):
@@ -196,12 +176,10 @@ class Game:
         gui_font = load_font("kenvector_future_thin.ttf", self.GUI_FONT_SIZE)
 
         self.board = Board(
-            self.n_rows, self.n_cols, self.n_mines, self.TILE_SIZE,
+            self.n_rows, self.n_cols, self.n_mines,
+            self.FIELD_BG_COLOR, self.FIELD_LINES_COLOR, self.TILE_SIZE,
             tile_image, mine_count_images, flag_image, mine_image,
             on_status_change_callback=self.on_status_change)
-
-        self.field = create_field(self.n_rows, self.n_cols, self.TILE_SIZE,
-                                  self.FIELD_BG_COLOR, self.FIELD_LINES_COLOR)
 
         self.screen = None
         self.screen_rect = None
@@ -216,7 +194,6 @@ class Game:
             self.GUI_FONT_COLOR,
             "DIFFICULTY",
             ["EASY", "NORMAL", "HARD", "CUSTOM"],
-            position=self.gui_rect.topleft,
             initial_value=state.get('difficulty', 'EASY'))
 
         self.difficulty_selector.rect.centerx = self.gui_rect.centerx
@@ -248,8 +225,7 @@ class Game:
         self.current_mines = Input(gui_font, self.GUI_FONT_COLOR,
                                    "MINES", self.board.n_mines)
 
-        self.status = Label(gui_font, self.GUI_FONT_COLOR, "READY TO GO!",
-                            position=self.hud_rect.topleft)
+        self.status = Label(gui_font, self.GUI_FONT_COLOR, "READY TO GO!")
 
         self.restart_button = Button(gui_font,
                                      self.GUI_FONT_COLOR,
@@ -308,9 +284,6 @@ class Game:
         self.screen = pygame.display.set_mode((window_width, window_height))
         self.screen_rect = self.screen.get_rect()
         self.screen.fill(self.BG_COLOR)
-        self.field = create_field(self.n_rows, self.n_cols, self.TILE_SIZE,
-                                  self.FIELD_BG_COLOR, self.FIELD_LINES_COLOR)
-
         self.gui_rect = pygame.Rect(self.MARGIN,
                                     2 * self.MARGIN + self.HUD_HEIGHT,
                                     self.GUI_WIDTH,
@@ -456,6 +429,7 @@ class Game:
         value = min(max(1, value), max_value)
         setattr(self, parameter, value)
         self.n_mines = min(self.n_mines, self.n_rows * self.n_cols - 1)
+        self.mines_input.set_value(self.n_mines)
         self.init_screen()
         self.place_gui()
         self.reset_game()
@@ -484,43 +458,29 @@ class Game:
         self.screen.fill(self.BG_COLOR)
 
         if self.mode == "leaderboard":
-            self.screen.blit(self.leaderboard.render(),
-                             self.leaderboard.rect)
-            self.screen.blit(self.leaderboard_hint.render(),
-                             self.leaderboard_hint.rect)
+            self.leaderboard.draw(self.screen)
+            self.leaderboard_hint.draw(self.screen)
             pygame.display.flip()
             return
         elif self.mode == "name_input":
-            self.screen.blit(self.name_input.render(),
-                             self.name_input.rect)
-            self.screen.blit(self.victory_time.render(),
-                             self.victory_time.rect)
+            self.name_input.draw(self.screen)
+            self.victory_time.draw(self.screen)
             pygame.display.flip()
             return
 
-        field = self.field.copy()
-        self.board.draw(field)
-        self.screen.blit(field, self.board.rect)
-        self.screen.blit(self.difficulty_selector.render(),
-                         self.difficulty_selector.rect)
+        self.board.draw(self.screen)
 
-        self.screen.blit(self.height_input.render(),
-                         self.height_input.rect)
-        self.screen.blit(self.width_input.render(),
-                         self.width_input.rect)
-        self.screen.blit(self.mines_input.render(),
-                         self.mines_input.rect)
+        self.difficulty_selector.draw(self.screen)
+        self.height_input.draw(self.screen)
+        self.width_input.draw(self.screen)
+        self.mines_input.draw(self.screen)
 
-        self.screen.blit(self.timer.render(), self.timer.rect)
-        self.screen.blit(self.current_mines.render(),
-                         self.current_mines.rect)
+        self.timer.draw(self.screen)
+        self.current_mines.draw(self.screen)
+        self.status.draw(self.screen)
 
-        self.screen.blit(self.status.render(), self.status.rect)
-
-        self.screen.blit(self.restart_button.render(),
-                         self.restart_button.rect)
-        self.screen.blit(self.show_leaderboard_button.render(),
-                         self.show_leaderboard_button.rect)
+        self.restart_button.draw(self.screen)
+        self.show_leaderboard_button.draw(self.screen)
 
         pygame.display.flip()
 

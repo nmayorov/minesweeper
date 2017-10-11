@@ -34,6 +34,41 @@ class Tile(pygame.sprite.Sprite):
                                 tile_size, tile_size)
 
 
+def create_field(n_rows, n_cols, tile_size, bg_color, line_color):
+    """Create a checkered field.
+
+    Parameters
+    ----------
+    n_rows, n_cols : int
+        Number of rows and columns.
+    tile_size : int
+        Length of tile's side.
+    bg_color : pygame.Color compatible
+        Background color.
+    line_color : pygame.Color compatible
+        Color of lines.
+
+    Returns
+    -------
+    pygame.Surface
+        Image of the field.
+    """
+    field = pygame.Surface((n_cols * tile_size, n_rows * tile_size))
+    field.fill(bg_color)
+
+    for i in range(n_rows):
+        pygame.draw.line(field, line_color,
+                         (0, i * tile_size),
+                         (n_cols * tile_size, i * tile_size))
+
+    for j in range(n_cols):
+        pygame.draw.line(field, line_color,
+                         (j * tile_size, 0),
+                         (j * tile_size, n_rows * tile_size))
+
+    return field
+
+
 class Board:
     """Game board.
 
@@ -45,8 +80,6 @@ class Board:
         Number of columns.
     n_mines : int
         Number of columns. Must be not greater than ``n_rows * n_cols``.
-    position : 2-tuple
-        Coordinates (x, y) of the top left corner of the board on the screen.
     tile_size : int
         Length of a tile's side in pixels.
     tile_image : pygame.Surface
@@ -66,9 +99,9 @@ class Board:
     TILE_OPENED = 1
     TILE_CHECKED = 2
 
-    def __init__(self, n_rows, n_cols, n_mines, tile_size, tile_image,
-                 mine_count_images, flag_image, mine_image,
-                 on_status_change_callback=None):
+    def __init__(self, n_rows, n_cols, n_mines, bg_color, bg_lines_color,
+                 tile_size, tile_image, mine_count_images, flag_image,
+                 mine_image, on_status_change_callback=None):
         self.n_rows = n_rows
         self.n_cols = n_cols
         self.n_mines = n_mines
@@ -84,6 +117,12 @@ class Board:
         self._time = 0
 
         self.tile_size = tile_size
+
+        self.bg_color = bg_color
+        self.bg_lines_color = bg_lines_color
+        self.bg_image = create_field(self.n_rows, self.n_cols,
+                                     self.tile_size, bg_color,
+                                     bg_lines_color)
         self.tile_image = tile_image
         self.mine_count_images = mine_count_images
         self.flag_image = flag_image
@@ -131,6 +170,8 @@ class Board:
             self.n_rows = n_rows
             self.n_cols = n_cols
 
+        self.bg_image = create_field(self.n_rows, self.n_cols, self.tile_size,
+                                     self.bg_color, self.bg_lines_color)
         self.n_mines_left = self.n_mines
         self.is_mine.fill(0)
         self.mine_count = None
@@ -422,4 +463,7 @@ class Board:
         if self.game_status in ["before_start", "running"]:
             if pygame.mouse.get_pressed()[0]:
                 self._update_view_running()
-        self.tiles_group.draw(surface)
+
+        bg = self.bg_image.copy()
+        self.tiles_group.draw(bg)
+        surface.blit(bg, self.rect)

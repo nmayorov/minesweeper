@@ -25,7 +25,32 @@ def draw_crossed_square_with_frame(side, color):
     return frame
 
 
-class Label:
+class GUIElement:
+    """Base class for all GUI elements.
+
+    It assumes that a game element must have a surface to display, and
+    `rect` with the size equal to the size of surface.
+
+    You should modify `rect` attribute in order to place the surface.
+
+    Parameters
+    ----------
+    surface : pygame.Surface
+        Element's surface.
+    """
+    def __init__(self, surface):
+        self.surface = surface
+        self.rect = self.surface.get_rect()
+
+    def draw(self, other_surface):
+        """Draw the element on the other surface.
+
+        ``self.rect`` is used for positioning.
+        """
+        other_surface.blit(self.surface, self.rect)
+
+
+class Label(GUIElement):
     """Label GUI element.
 
     Parameters
@@ -36,14 +61,11 @@ class Label:
         Font color.
     text : string
         Label text.
-    position : 2-tuple
-        Position on screen.
     """
-    def __init__(self, font, font_color, text, position=(0, 0)):
+    def __init__(self, font, font_color, text):
         self.font = font
         self.font_color = font_color
-        self.surface = font.render(text, True, font_color)
-        self.rect = self.surface.get_rect(topleft=position)
+        super(Label, self).__init__(font.render(text, True, font_color))
 
     def set_text(self, text):
         """Set text."""
@@ -56,7 +78,7 @@ class Label:
         return self.surface
 
 
-class Button:
+class Button(GUIElement):
     """Button GUI element.
 
     The visual is a text in a rectangular frame.
@@ -73,28 +95,24 @@ class Button:
         Call on click, accepts no arguments. No callback by default.
     frame_color : compatible with pygame.Color
         Color to use for the frame. Use `font_color` by default.
-    position : 2-tuple, optional
-        Position on screen. Default (0, 0). It might make sense to set it
-        later thus it is implemented that way.
     """
     def __init__(self, font, font_color, text, on_click_callback,
-                 frame_color=None, position=(0, 0)):
+                 frame_color=None):
         self.text = font.render(text, True, font_color)
         margin = font.size("_")[0]
         if frame_color is None:
             frame_color = font_color
-        self.boarder = draw_frame(self.text.get_width() + margin,
+        self.surface = draw_frame(self.text.get_width() + margin,
                                   1.2 * self.text.get_height(),
                                   frame_color)
-        self.rect = self.boarder.get_rect()
-        rect = self.text.get_rect(center=self.rect.center)
-        self.rect.topleft = position
-        self.boarder.blit(self.text, rect.topleft)
-        self.on_click_callback = on_click_callback
 
-    def render(self):
-        """Return surface to display."""
-        return self.boarder
+        surface = draw_frame(self.text.get_width() + margin,
+                             1.2 * self.text.get_height(),
+                             frame_color)
+        super(Button, self).__init__(surface)
+        rect = self.text.get_rect(center=self.rect.center)
+        self.surface.blit(self.text, rect.topleft)
+        self.on_click_callback = on_click_callback
 
     def on_mouse_up(self, button):
         """Handle mouse button up."""
@@ -105,7 +123,7 @@ class Button:
             self.on_click_callback()
 
 
-class SelectionGroup:
+class SelectionGroup(GUIElement):
     """Selector from one of many options.
 
     Parameters
@@ -114,8 +132,6 @@ class SelectionGroup:
         Font to display text.
     font_color : compatible with pygame.Color
         Font color.
-    unselected_image, selected_image : pygame.Surface
-        Images for selected / unselected options. Must have equal size.
     title : string
         Title for the group.
     options : list of string
@@ -123,13 +139,10 @@ class SelectionGroup:
     on_change_callback : callable, optional
         Callable with signature ``on_change_callback(option)`` called
         when a new option is selected. No callback by default.
-    position : 2-tuple, optional
-        Position on screen. Default (0, 0). It might make sense to set it
-        later thus it is implemented that way.
     """
     def __init__(self, font, font_color,
                  title, options,
-                 on_change_callback=None, position=(0, 0),
+                 on_change_callback=None,
                  initial_value=None):
         item_size = font.get_height()
 
@@ -152,11 +165,9 @@ class SelectionGroup:
                   + 0.5 * item_size
                   + 1.5 * item_size * self.n_options)
 
-        self.surface = pygame.Surface((width, height), pygame.SRCALPHA)
-        self.rect = self.surface.get_rect(topleft=position)
-        surface_rect = self.surface.get_rect()
-
-        title_rect = self.title_image.get_rect(centerx=surface_rect.centerx)
+        super(SelectionGroup, self).__init__(pygame.Surface((width, height),
+                                                            pygame.SRCALPHA))
+        title_rect = self.title_image.get_rect(centerx=self.rect.centerx)
 
         self.button_rects = []
         self.item_rects = []
@@ -187,14 +198,14 @@ class SelectionGroup:
         self.surface_stub.blit(self.title_image, title_rect.topleft)
         for option_rect, option_image in zip(option_rects, option_images):
             self.surface_stub.blit(option_image, option_rect)
-        self._prepare_render()
+        self._render()
 
     @property
     def selected(self):
         """Currently selected option."""
         return self.options[self._selected]
 
-    def _prepare_render(self):
+    def _render(self):
         self.surface.fill((0, 0, 0, 0))
         self.surface.blit(self.surface_stub, (0, 0))
         for i, rect in enumerate(self.button_rects):
@@ -221,14 +232,10 @@ class SelectionGroup:
                 break
 
         if self._selected != selected_old:
-            self._prepare_render()
-
-    def render(self):
-        """Return surface to display."""
-        return self.surface
+            self._render()
 
 
-class Input:
+class Input(GUIElement):
     """Text input.
 
     It displays a title and a value. Value can be modified by clicking on
@@ -257,20 +264,17 @@ class Input:
         to display.
     max_value_length : int, optional
         Maximum length of the value string. Unlimited by default.
-    allowed_symbols : container of strings
-        Allowed characters to accept when entering the value. The character
-        will be obtained with ``pygame.key.name``. Any symbol is allowed
-        by default.
+    key_filter : callable, optional
+        Called like ``key_filter(key_name)`` to determine whether a symbol
+        should be accepted. No filter by default.
     on_enter_callback : callable, optional
         Callable to call when the value is entered. The signature is
         ``on_enter_callback(value)``. No callback by default.
-    position : 2-tuple, optional
-        Position on screen. By default (0, 0).
     """
     def __init__(self, font, font_color, title, value, delimiter="  ",
                  frame_color=None, active_input=False,
                  width=None, max_value_length=None, key_filter=None,
-                 on_enter_callback=None, position=(0, 0)):
+                 on_enter_callback=None):
         self.font = font
         self.font_color = font_color
         self.width = width
@@ -293,10 +297,10 @@ class Input:
         self.text_rect = None
         self.value_rect = None
         self.rect = None
-        self._prepare_render()
-        self.rect = self.surface.get_rect(topleft=position)
+        self._render()
+        super(Input, self).__init__(self.surface)
 
-    def _prepare_render(self):
+    def _render(self):
         """Prepare data for render, called as necessary."""
         value = self.current_value
         if self.in_input:
@@ -341,18 +345,14 @@ class Input:
     def active_input(self, value):
         if value != self._active_input:
             self._active_input = value
-            self._prepare_render()
-
-    def render(self):
-        """Return surface to display."""
-        return self.surface
+            self._render()
 
     def set_value(self, value):
         """Set value."""
         value = str(value)
         self.current_value = value
         self.value = self.current_value
-        self._prepare_render()
+        self._render()
 
     def on_mouse_up(self, button):
         """Handle mouse button up."""
@@ -369,7 +369,7 @@ class Input:
             self.in_input = False
             self.current_value = self.value
 
-        self._prepare_render()
+        self._render()
 
     def on_key_down(self, key):
         """Handle key down."""
@@ -379,7 +379,7 @@ class Input:
         if key == pygame.K_BACKSPACE:
             if self.current_value:
                 self.current_value = self.current_value[:-1]
-                self._prepare_render()
+                self._render()
         elif key == pygame.K_RETURN:
             self.in_input = False
             if self.on_enter_callback is not None:
@@ -387,7 +387,7 @@ class Input:
             else:
                 new_value = self.current_value
             self.set_value(new_value)
-            self._prepare_render()
+            self._render()
         else:
             if len(self.current_value) == self.max_value_length:
                 return
@@ -395,10 +395,10 @@ class Input:
             key_name = pygame.key.name(key)
             if self.key_filter is None or self.key_filter(key_name):
                 self.current_value += key_name
-                self._prepare_render()
+                self._render()
 
 
-class InputDialogue:
+class InputDialogue(GUIElement):
     """Dialogue to input some value.
 
     Parameters
@@ -415,7 +415,7 @@ class InputDialogue:
         Maximum allowed length of the value. Unlimited by default.
     key_filter : callable, optional
         Called like ``key_filter(key_name)`` to determine whether a symbol
-        should be accepted.
+        should be accepted. No filter by default.
     """
     def __init__(self, font, font_color, title, on_enter_callback,
                  max_length=None, key_filter=None):
@@ -429,7 +429,9 @@ class InputDialogue:
         width = self.title_image.get_width() + 2 * horizontal_margin
         height = 3 * vertical_margin + 2 * line_height
 
-        self.surface = draw_frame(width, height, self.font_color)
+        super(InputDialogue, self).__init__(draw_frame(width, height,
+                                                       self.font_color))
+
         self.title_image_rect = self.title_image.get_rect(x=horizontal_margin,
                                                           y=vertical_margin)
 
@@ -442,34 +444,29 @@ class InputDialogue:
         self.max_length = max_length
         self.key_filter = key_filter
 
-        self._prepare_render()
+        self._render()
 
-    def _prepare_render(self):
+    def _render(self):
         width, height = self.surface.get_size()
         self.surface = draw_frame(width, height, self.font_color)
-        # self.surface.fill((0, 0, 0, 0))
         self.surface.blit(self.title_image, self.title_image_rect)
         value_image = self.font.render(self.value + "_", True, self.font_color)
         rect = value_image.get_rect(top=self.value_top,
                                     centerx=0.5 * self.surface.get_width())
         self.surface.blit(value_image, rect)
 
-    def render(self):
-        """Return surface to display."""
-        return self.surface
-
     def set_value(self, value):
         """Set value."""
         self.value = value
-        self._prepare_render()
+        self._render()
 
     def on_key_down(self, key):
         """Handle key down."""
         if key == pygame.K_BACKSPACE:
             if self.value:
                 self.value = self.value[:-1]
-                self._prepare_render()
-                self._prepare_render()
+                self._render()
+                self._render()
         elif key == pygame.K_RETURN:
             self.on_enter_callback(self.value)
         else:
@@ -480,4 +477,4 @@ class InputDialogue:
             key_name = pygame.key.name(key)
             if self.key_filter is None or self.key_filter(key_name):
                 self.value += key_name
-                self._prepare_render()
+                self._render()

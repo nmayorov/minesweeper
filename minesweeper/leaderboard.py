@@ -143,6 +143,6 @@ class Leaderboard:
 
         self._prepare_render()
 
-    def render(self):
-        """Return surface to display."""
-        return self.surface
+    def draw(self, surface):
+        """Draw on the surface."""
+        surface.blit(self.surface, self.rect)
