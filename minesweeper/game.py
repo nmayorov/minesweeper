@@ -194,8 +194,6 @@ class Game:
         mine_image = load_image('mine.png', self.TILE_SIZE)
         flag_image = load_image('flag.png', self.TILE_SIZE)
         gui_font = load_font("kenvector_future_thin.ttf", self.GUI_FONT_SIZE)
-        unselected_image = load_image("radio.png")
-        selected_image = load_image("radio_checked.png")
 
         self.board = Board(
             self.n_rows, self.n_cols, self.n_mines, self.TILE_SIZE,
@@ -216,7 +214,6 @@ class Game:
         self.difficulty_selector = SelectionGroup(
             gui_font,
             self.GUI_FONT_COLOR,
-            unselected_image, selected_image,
             "DIFFICULTY",
             ["EASY", "NORMAL", "HARD", "CUSTOM"],
             position=self.gui_rect.topleft,
@@ -271,9 +268,6 @@ class Game:
                                        data=leaderboard_data)
         self.leaderboard_hint = Label(gui_font, self.GUI_FONT_COLOR,
                                       "CLICK TO CONTINUE")
-        self.leaderboard_hint.rect.bottom = (self.screen_rect.height
-                                             - self.MARGIN)
-        self.leaderboard_hint.rect.centerx = self.screen_rect.centerx
 
         self.name_input = InputDialogue(gui_font, self.GUI_FONT_COLOR,
                                         "ENTER YOUR NAME",
@@ -371,6 +365,10 @@ class Game:
 
         self.leaderboard.rect.top = self.MARGIN
         self.leaderboard.rect.centerx = screen_center
+
+        self.leaderboard_hint.rect.bottom = (self.screen_rect.height
+                                             - self.MARGIN)
+        self.leaderboard_hint.rect.centerx = self.screen_rect.centerx
 
         self.victory_time.rect.top = self.MARGIN
         self.victory_time.rect.centerx = self.screen_rect.centerx

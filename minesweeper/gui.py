@@ -4,15 +4,25 @@ import pygame
 LEFT_CLICK = 1
 
 
-def create_frame_image(width, height, frame_color, line_width=1):
-    ret = pygame.Surface((width, height), pygame.SRCALPHA)
-    pygame.draw.line(ret, frame_color, (0, 0), (width, 0), line_width)
-    pygame.draw.line(ret, frame_color, (0, 0), (0, height), line_width)
-    pygame.draw.line(ret, frame_color, (width - 1, 0), (width - 1, height),
-                     line_width)
-    pygame.draw.line(ret, frame_color, (0, height - 1), (width, height - 1),
-                     line_width)
-    return ret
+def draw_frame(width, height, frame_color):
+    """Draw a rectangular frame on a transparent surface."""
+    frame = pygame.Surface((width, height), pygame.SRCALPHA)
+    pygame.draw.line(frame, frame_color, (0, 0), (width, 0))
+    pygame.draw.line(frame, frame_color, (0, 0), (0, height))
+    pygame.draw.line(frame, frame_color, (width - 1, 0), (width - 1, height))
+    pygame.draw.line(frame, frame_color, (0, height - 1), (width, height - 1))
+    return frame
+
+
+def draw_crossed_square_with_frame(side, color):
+    """Draw a square frame with a cross on it."""
+    frame = draw_frame(side, side, color)
+    shift = 0.3 * side
+    pygame.draw.line(frame, color,
+                     (shift, shift), (side - shift, side - shift))
+    pygame.draw.line(frame, color,
+                     (side - shift, shift), (shift, side - shift))
+    return frame
 
 
 class Label:
@@ -73,9 +83,9 @@ class Button:
         margin = font.size("_")[0]
         if frame_color is None:
             frame_color = font_color
-        self.boarder = create_frame_image(self.text.get_width() + margin,
-                                          1.2 * self.text.get_height(),
-                                          frame_color)
+        self.boarder = draw_frame(self.text.get_width() + margin,
+                                  1.2 * self.text.get_height(),
+                                  frame_color)
         self.rect = self.boarder.get_rect()
         rect = self.text.get_rect(center=self.rect.center)
         self.rect.topleft = position
@@ -118,16 +128,15 @@ class SelectionGroup:
         later thus it is implemented that way.
     """
     def __init__(self, font, font_color,
-                 unselected_image, selected_image,
                  title, options,
                  on_change_callback=None, position=(0, 0),
                  initial_value=None):
-        if unselected_image.get_size() != selected_image.get_size():
-            raise ValueError("Images of selected and unselected buttons "
-                             "must have equal size")
+        item_size = font.get_height()
 
-        self.unselected_image = unselected_image
-        self.selected_image = selected_image
+        self.unselected_image = draw_frame(item_size, item_size,
+                                           font_color)
+        self.selected_image = draw_crossed_square_with_frame(item_size,
+                                                             font_color)
 
         self.options = options
         self.n_options = len(options)
@@ -136,14 +145,12 @@ class SelectionGroup:
         option_images = [font.render(option, True, font_color)
                          for option in options]
 
-        item_height = max(unselected_image.get_height(), font.get_height())
-        button_width = unselected_image.get_width()
-        item_widths = [1.5 * button_width + option_image.get_width()
+        item_widths = [1.5 * item_size + option_image.get_width()
                        for option_image in option_images]
         width = max(max(item_widths), self.title_image.get_width())
         height = (self.title_image.get_height()
-                  + 0.5 * item_height
-                  + 1.5 * item_height * self.n_options)
+                  + 0.5 * item_size
+                  + 1.5 * item_size * self.n_options)
 
         self.surface = pygame.Surface((width, height), pygame.SRCALPHA)
         self.rect = self.surface.get_rect(topleft=position)
@@ -154,17 +161,17 @@ class SelectionGroup:
         self.button_rects = []
         self.item_rects = []
         option_rects = []
-        y = title_rect.bottom + 0.5 * item_height
+        y = title_rect.bottom + 0.5 * item_size
         for option_image, item_width in zip(option_images, item_widths):
             button_rect = self.unselected_image.get_rect(y=y)
             option_rect = option_image.get_rect(
                 x=button_rect.right + 0.5 * button_rect.width,
                 centery=button_rect.centery)
-            item_rect = pygame.Rect(0, y, item_width, item_height)
+            item_rect = pygame.Rect(0, y, item_width, item_size)
             self.button_rects.append(button_rect)
             option_rects.append(option_rect)
             self.item_rects.append(item_rect)
-            y += 1.5 * item_height
+            y += 1.5 * item_size
 
         self._selected = 0
         if initial_value is not None:
@@ -174,21 +181,27 @@ class SelectionGroup:
                     break
 
         self.callback = on_change_callback
-        self.surface.fill((0, 0, 0, 0))
-        self.surface.blit(self.title_image, title_rect.topleft)
-        for option_rect, option_image in zip(option_rects, option_images):
-            self.surface.blit(option_image, option_rect)
 
-        for i, rect in enumerate(self.button_rects):
-            if i == self._selected:
-                self.surface.blit(self.selected_image, rect)
-            else:
-                self.surface.blit(self.unselected_image, rect)
+        self.surface_stub = pygame.Surface((width, height), pygame.SRCALPHA)
+        self.surface_stub.fill((0, 0, 0, 0))
+        self.surface_stub.blit(self.title_image, title_rect.topleft)
+        for option_rect, option_image in zip(option_rects, option_images):
+            self.surface_stub.blit(option_image, option_rect)
+        self._prepare_render()
 
     @property
     def selected(self):
         """Currently selected option."""
         return self.options[self._selected]
+
+    def _prepare_render(self):
+        self.surface.fill((0, 0, 0, 0))
+        self.surface.blit(self.surface_stub, (0, 0))
+        for i, rect in enumerate(self.button_rects):
+            if i == self._selected:
+                self.surface.blit(self.selected_image, rect)
+            else:
+                self.surface.blit(self.unselected_image, rect)
 
     def on_mouse_up(self, button):
         """Handle mouse button up."""
@@ -208,10 +221,7 @@ class SelectionGroup:
                 break
 
         if self._selected != selected_old:
-            self.surface.blit(self.unselected_image,
-                              self.button_rects[selected_old])
-            self.surface.blit(self.selected_image,
-                              self.button_rects[self._selected])
+            self._prepare_render()
 
     def render(self):
         """Return surface to display."""
@@ -313,9 +323,9 @@ class Input:
                                  value_height)
 
         if self._active_input:
-            frame = create_frame_image(value_rect.width,
-                                       value_rect.height,
-                                       self.frame_color)
+            frame = draw_frame(value_rect.width,
+                               value_rect.height,
+                               self.frame_color)
             surface.blit(frame, value_rect)
         surface.blit(text, text_rect)
         self.surface = surface
@@ -419,7 +429,7 @@ class InputDialogue:
         width = self.title_image.get_width() + 2 * horizontal_margin
         height = 3 * vertical_margin + 2 * line_height
 
-        self.surface = create_frame_image(width, height, self.font_color)
+        self.surface = draw_frame(width, height, self.font_color)
         self.title_image_rect = self.title_image.get_rect(x=horizontal_margin,
                                                           y=vertical_margin)
 
@@ -436,7 +446,7 @@ class InputDialogue:
 
     def _prepare_render(self):
         width, height = self.surface.get_size()
-        self.surface = create_frame_image(width, height, self.font_color)
+        self.surface = draw_frame(width, height, self.font_color)
         # self.surface.fill((0, 0, 0, 0))
         self.surface.blit(self.title_image, self.title_image_rect)
         value_image = self.font.render(self.value + "_", True, self.font_color)
