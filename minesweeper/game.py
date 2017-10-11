@@ -269,6 +269,11 @@ class Game:
         self.leaderboard = Leaderboard(gui_font, self.GUI_FONT_COLOR,
                                        5, leaderboard_width,
                                        data=leaderboard_data)
+        self.leaderboard_hint = Label(gui_font, self.GUI_FONT_COLOR,
+                                      "CLICK TO CONTINUE")
+        self.leaderboard_hint.rect.bottom = (self.screen_rect.height
+                                             - self.MARGIN)
+        self.leaderboard_hint.rect.centerx = self.screen_rect.centerx
 
         self.name_input = InputDialogue(gui_font, self.GUI_FONT_COLOR,
                                         "ENTER YOUR NAME",
@@ -483,6 +488,8 @@ class Game:
         if self.mode == "leaderboard":
             self.screen.blit(self.leaderboard.render(),
                              self.leaderboard.rect)
+            self.screen.blit(self.leaderboard_hint.render(),
+                             self.leaderboard_hint.rect)
             pygame.display.flip()
             return
         elif self.mode == "name_input":
