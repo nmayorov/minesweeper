@@ -129,7 +129,6 @@ def is_digit(key_name):
 
 class Game:
     """Main game class."""
-    STATE_FILE = 'state'
     TILE_SIZE = 20
     GUI_WIDTH = 91
     HUD_HEIGHT = 30
@@ -145,10 +144,9 @@ class Game:
     MAX_NAME_LENGTH = 8
     DELAY_BEFORE_NAME_INPUT_MS = 1000
 
-    def __init__(self):
-        state_path = os.path.join(os.path.dirname(__file__), self.STATE_FILE)
+    def __init__(self, state_file_path):
         try:
-            with open(state_path) as state_file:
+            with open(state_file_path) as state_file:
                 state = json.load(state_file)
         except (IOError, json.JSONDecodeError):
             state = {}
@@ -543,7 +541,7 @@ class Game:
             self.show_name_input_timer.check()
             self.draw_all()
 
-    def save_state(self):
+    def save_state(self, state_file_path):
         """Save game state on disk."""
         state = {
             "difficulty": self.difficulty_selector.selected,
@@ -552,17 +550,14 @@ class Game:
             "n_mines": self.n_mines,
             "leaderboard": self.leaderboard.data
         }
-        state_path = os.path.join(os.path.dirname(__file__), self.STATE_FILE)
-        with open(state_path, "w") as state_file:
+        with open(state_file_path, "w") as state_file:
             json.dump(state, state_file)
 
 
-def run():
+def run(state_file_path):
     pygame.init()
-    print(pygame.display.Info().current_w)
-
     pygame.display.set_caption('Minesweeper')
     pygame.mouse.set_visible(True)
-    game = Game()
+    game = Game(state_file_path)
     game.start_main_loop()
-    game.save_state()
+    game.save_state(state_file_path)
