@@ -332,7 +332,10 @@ class Board:
                     if (i, j) == self.losing_indices:
                         tile.image = self.mine_image_red_bg
                     elif self.tile_status[i, j] == Board.TILE_CHECKED:
-                        tile.image = self.flag_image
+                        tile.image = self.tile_image.copy()
+                        rect = self.flag_image.get_rect(
+                            center=tile.image.get_rect().center)
+                        tile.image.blit(self.flag_image, rect.topleft)
                     else:
                         tile.image = self.mine_image
                 elif status == Board.TILE_CLOSED:
@@ -340,13 +343,7 @@ class Board:
                 elif status == Board.TILE_OPENED:
                     tile.image = self.mine_count_images[self.mine_count[i, j]]
                 elif status == Board.TILE_CHECKED:
-                    if self.is_mine[i, j]:
-                        tile.image = self.tile_image.copy()
-                        rect = self.flag_image.get_rect(
-                            center=tile.image.get_rect().center)
-                        tile.image.blit(self.flag_image, rect.topleft)
-                    else:
-                        tile.image = self.mine_image_crossed
+                    tile.image = self.mine_image_crossed
 
                 k += 1
 
