@@ -99,12 +99,9 @@ class Button(GUIElement):
     def __init__(self, font, font_color, text, on_click_callback,
                  frame_color=None):
         self.text = font.render(text, True, font_color)
-        margin = font.size("_")[0]
+        margin = 1.5 * font.size("_")[0]
         if frame_color is None:
             frame_color = font_color
-        self.surface = draw_frame(self.text.get_width() + margin,
-                                  1.2 * self.text.get_height(),
-                                  frame_color)
 
         surface = draw_frame(self.text.get_width() + margin,
                              1.2 * self.text.get_height(),
@@ -371,11 +368,12 @@ class Input(GUIElement):
 
         self._render()
 
-    def on_key_down(self, key):
+    def on_key_down(self, event):
         """Handle key down."""
         if not self.in_input:
             return
 
+        key = event.key
         if key == pygame.K_BACKSPACE:
             if self.current_value:
                 self.current_value = self.current_value[:-1]
@@ -392,7 +390,7 @@ class Input(GUIElement):
             if len(self.current_value) == self.max_value_length:
                 return
 
-            key_name = pygame.key.name(key)
+            key_name = event.unicode
             if self.key_filter is None or self.key_filter(key_name):
                 self.current_value += key_name
                 self._render()
@@ -460,8 +458,9 @@ class InputDialogue(GUIElement):
         self.value = value
         self._render()
 
-    def on_key_down(self, key):
+    def on_key_down(self, event):
         """Handle key down."""
+        key = event.key
         if key == pygame.K_BACKSPACE:
             if self.value:
                 self.value = self.value[:-1]
@@ -474,7 +473,7 @@ class InputDialogue(GUIElement):
                     and len(self.value) == self.max_length):
                 return
 
-            key_name = pygame.key.name(key)
+            key_name = event.unicode
             if self.key_filter is None or self.key_filter(key_name):
                 self.value += key_name
                 self._render()

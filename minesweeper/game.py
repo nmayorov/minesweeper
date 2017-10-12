@@ -138,8 +138,7 @@ class Game:
     FIELD_BG_COLOR = pygame.Color('#d7dcdc')
     FIELD_LINES_COLOR = pygame.Color('#738383')
     GUI_FONT_COLOR = pygame.Color('Light Yellow')
-    GUI_FONT_SIZE = 12
-    HUD_FONT_SIZE = 12
+    GUI_FONT_SIZE = 13
     DIGITS = {chr(c) for c in range(ord('0'), ord('9') + 1)}
     MAX_BOARD_DIMENSION = 50
     MIN_BOARD_DIMENSION_DISPLAY = 10
@@ -173,7 +172,7 @@ class Game:
         tile_image = load_image('tile.png', self.TILE_SIZE)
         mine_image = load_image('mine.png', self.TILE_SIZE)
         flag_image = load_image('flag.png', self.TILE_SIZE)
-        gui_font = load_font("kenvector_future_thin.ttf", self.GUI_FONT_SIZE)
+        gui_font = load_font("Akrobat-Bold.otf", self.GUI_FONT_SIZE)
 
         self.board = Board(
             self.n_rows, self.n_cols, self.n_mines,
@@ -507,11 +506,8 @@ class Game:
                 break
             elif self.mode == "name_input":
                 if event.type == pygame.KEYDOWN:
-                    self.name_input.on_key_down(event.key)
+                    self.name_input.on_key_down(event)
                 break
-
-            # if self.show_name_input_timer.running:
-            #     continue
 
             if event.type == pygame.MOUSEBUTTONUP:
                 self.difficulty_selector.on_mouse_up(event.button)
@@ -524,9 +520,9 @@ class Game:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.board.on_mouse_down(event.button)
             elif event.type == pygame.KEYDOWN:
-                self.height_input.on_key_down(event.key)
-                self.width_input.on_key_down(event.key)
-                self.mines_input.on_key_down(event.key)
+                self.height_input.on_key_down(event)
+                self.width_input.on_key_down(event)
+                self.mines_input.on_key_down(event)
 
     def start_main_loop(self):
         """Start main game loop."""
