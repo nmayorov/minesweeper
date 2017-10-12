@@ -153,6 +153,12 @@ class Game:
         except (IOError, json.JSONDecodeError):
             state = {}
 
+        display_info = pygame.display.Info()
+        self.max_cols = (int(0.95 * display_info.current_w) - self.GUI_WIDTH
+                         - 3 * self.MARGIN) // self.TILE_SIZE
+        self.max_rows = (int(0.95 * display_info.current_h) - self.HUD_HEIGHT
+                         - 3 * self.MARGIN) // self.TILE_SIZE
+
         difficulty = state.get('difficulty', 'EASY')
         if difficulty not in ['EASY', 'NORMAL', 'HARD', 'CUSTOM']:
             difficulty = 'EASY'
@@ -446,13 +452,13 @@ class Game:
     def on_rows_enter(self, value):
         """Handle n_rows input."""
         return self.set_game_parameter('n_rows',
-                                       self.MAX_BOARD_DIMENSION,
+                                       self.max_rows,
                                        value)
 
     def on_cols_enter(self, value):
         """Handle n_cols input."""
         return self.set_game_parameter('n_cols',
-                                       self.MAX_BOARD_DIMENSION,
+                                       self.max_cols,
                                        value)
 
     def on_mines_enter(self, value):
@@ -553,6 +559,8 @@ class Game:
 
 def run():
     pygame.init()
+    print(pygame.display.Info().current_w)
+
     pygame.display.set_caption('Minesweeper')
     pygame.mouse.set_visible(True)
     game = Game()
