@@ -252,6 +252,9 @@ class Game:
                                         key_filter=is_key_suitable_for_name)
 
         self.victory_time = Label(gui_font, self.GUI_FONT_COLOR, "")
+        self.leaderboard_announcement = Label(
+            gui_font, self.GUI_FONT_COLOR,
+            "YOU MADE IT TO THE LEADERBOARD!")
         self.show_name_input_timer = Timer(self.show_name_input)
 
         self.place_gui()
@@ -345,10 +348,15 @@ class Game:
 
         self.victory_time.rect.top = self.MARGIN
         self.victory_time.rect.centerx = self.screen_rect.centerx
+        self.leaderboard_announcement.rect.top = (
+            self.victory_time.rect.bottom
+            + 0.4 * self.victory_time.rect.height)
+        self.leaderboard_announcement.rect.centerx = self.screen_rect.centerx
 
-        self.name_input.rect.top = (self.victory_time.rect.bottom
-                                    + self.victory_time.rect.height)
-        self.name_input.rect.centerx = screen_center
+        self.name_input.rect.top = (
+            self.leaderboard_announcement.rect.bottom
+            + self.leaderboard_announcement.rect.height)
+        self.name_input.rect.centerx = self.screen_rect.centerx
 
     def place_hud(self):
         """Place timer and mines info and return width of this block."""
@@ -369,6 +377,14 @@ class Game:
     def show_leaderboard(self):
         """Change screen to leaderboard."""
         self.mode = "leaderboard"
+
+    def show_name_input(self):
+        """Change screen to name input."""
+        self.mode = "name_input"
+        self.victory_time.set_text("YOUR TIME IS {} SECONDS"
+                                   .format(self.board.time))
+        self.name_input.set_value("")
+        self.place_gui()
 
     def on_name_enter(self, name):
         """Handle name enter for the leaderboard."""
@@ -393,13 +409,6 @@ class Game:
             self.status.set_text("READY TO GO!")
         else:
             self.status.set_text("GOOD LUCK!")
-
-    def show_name_input(self):
-        self.mode = "name_input"
-        self.victory_time.set_text("YOUR TIME IS {} SECONDS!"
-                                   .format(self.board.time))
-        self.name_input.set_value("")
-        self.place_gui()
 
     def on_difficulty_change(self, difficulty):
         """Handle difficulty change."""
@@ -463,8 +472,9 @@ class Game:
             pygame.display.flip()
             return
         elif self.mode == "name_input":
-            self.name_input.draw(self.screen)
             self.victory_time.draw(self.screen)
+            self.leaderboard_announcement.draw(self.screen)
+            self.name_input.draw(self.screen)
             pygame.display.flip()
             return
 
