@@ -1,4 +1,4 @@
-A classic minesweeper game written with pygame. 
+A classic minesweeper game written with pygame. Here is a short [demo](https://youtu.be/gT6FjFHyxF4) with a gameplay.
 
 Dependencies
 ------------
