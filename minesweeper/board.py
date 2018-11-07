@@ -284,7 +284,7 @@ class Board:
             self.tile_status[i, j] = self.TILE_CLOSED
             self.n_mines_left += 1
 
-    def _open_tile(self, i, j):
+    def open_tile(self, i, j):
         """Open tile (left click action)."""
         status = self.tile_status[i, j]
         if status == self.TILE_CHECKED:
@@ -424,7 +424,7 @@ class Board:
 
         return i, j
 
-    def _update_view(self):
+    def update_view(self):
         """Update board view."""
         if self.game_status == "game_over":
             self._update_view_game_over()
@@ -440,7 +440,7 @@ class Board:
             i, j = self._get_tile_indices_at_mouse()
             if i is not None and j is not None:
                 self._check_tile(i, j)
-                self._update_view()
+                self.update_view()
 
     def on_mouse_up(self, button):
         """Process mouse button up."""
@@ -450,8 +450,8 @@ class Board:
         if button == LEFT_BUTTON:
             i, j = self._get_tile_indices_at_mouse()
             if i is not None and j is not None:
-                self._open_tile(i, j)
-                self._update_view()
+                self.open_tile(i, j)
+                self.update_view()
 
     def draw(self, surface):
         """Draw board on surface."""
