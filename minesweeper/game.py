@@ -4,6 +4,7 @@ import pygame
 from . board import Board
 from . gui import SelectionGroup, Input, Button, Label, InputDialogue
 from . leaderboard import Leaderboard
+from . genetic_algorithm import *
 
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), 'assets')
@@ -532,11 +533,13 @@ class Game:
         """Start main game loop."""
         clock = pygame.time.Clock()
         self.keep_running = True
+        genome = Genome(self.n_rows, self.n_cols)
         while self.keep_running:
             clock.tick(30)
             self.timer.set_value(self.board.time)
             self.current_mines.set_value(self.board.n_mines_left)
             self.place_hud()
+            make_move(self.board, genome, self.n_rows, self.n_cols)
             self.process_events()
             self.show_name_input_timer.check()
             self.draw_all()
