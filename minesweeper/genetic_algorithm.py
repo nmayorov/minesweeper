@@ -282,8 +282,9 @@ def make_move(board, genome, n_mines):
         board.update_view()
         genome.update_genotype(board, optimal_move[0], optimal_move[1], board.game_status)
 
-    if board.game_status == 'game_over' or board.game_status == 'victory':
+    if board.game_status == 'game_over':
         board.reset(genome.n_rows, genome.n_cols, n_mines)
         genome.update_genotype(board, optimal_move[0], optimal_move[1], board.game_status)
+
     return
 

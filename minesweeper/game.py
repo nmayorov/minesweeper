@@ -538,7 +538,7 @@ class Game:
         self.keep_running = True
         genome = Genome(self.n_rows, self.n_cols)
         while self.keep_running:
-            clock.tick(60)
+            clock.tick(1024)
             self.timer.set_value(self.board.time)
             self.current_mines.set_value(self.board.n_mines_left)
             self.place_hud()
@@ -565,5 +565,7 @@ def run(state_file_path):
     pygame.display.set_caption('Minesweeper')
     pygame.mouse.set_visible(True)
     game = Game(state_file_path)
+    # ["EASY", "NORMAL", "HARD", "CUSTOM"],
+    game.on_difficulty_change('HARD')
     game.start_main_loop()
     game.save_state(state_file_path)
