@@ -1,5 +1,5 @@
 import numpy
-import math
+
 
 class Genome:
 
@@ -43,7 +43,10 @@ class Genome:
         return
 
     def update_genotype(self):
+
+
         # TODO: Update genotype on good or bad move
+
         return
 
     def get_optimal_move(self, board, n_rows, n_cols):
@@ -117,13 +120,14 @@ class Genome:
         return ret
 
 
-def make_move(board, genome, n_rows, n_cols):
+def make_move(board, genome, n_rows, n_cols, n_mines):
     mine_count = board.mine_count
     is_mine = board.is_mine
     optimal_move = genome.get_optimal_move(board, n_rows, n_cols)
-    if optimal_move[0] is not None or optimal_move[1] is not None:
+    if (optimal_move[0] is not None or optimal_move[1] is not None) and board.game_status != 'game_over' and board.game_status != 'victory':
         board.open_tile(optimal_move[0], optimal_move[1])
-    board.update_view()
-    # TODO: Reset game if there is a loss
+        board.update_view()
+    if board.game_status == 'game_over' or board.game_status == 'victory':
+        board.reset(n_rows, n_cols, n_mines)
     return
 
