@@ -538,11 +538,11 @@ class Game:
         self.keep_running = True
         genome = Genome(self.n_rows, self.n_cols)
         while self.keep_running:
-            clock.tick(5)
+            clock.tick(60)
             self.timer.set_value(self.board.time)
             self.current_mines.set_value(self.board.n_mines_left)
             self.place_hud()
-            make_move(self.board, genome, self.n_rows, self.n_cols, self.n_mines)
+            make_move(self.board, genome, self.n_mines)
             self.process_events()
             self.show_name_input_timer.check()
             self.draw_all()
