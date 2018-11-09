@@ -405,10 +405,13 @@ class Game:
             self.status.set_text("GAME OVER!")
         elif new_status == 'victory':
             self.status.set_text("VICTORY!")
+            """
             if self.leaderboard.needs_update(self.difficulty_selector.selected,
-                                             self.board.time):
+                                 self.board.time):
                 self.show_name_input_timer.start(
                     self.DELAY_BEFORE_NAME_INPUT_MS)
+            """
+
         elif new_status == 'before_start':
             self.status.set_text("READY TO GO!")
         else:
@@ -535,11 +538,11 @@ class Game:
         self.keep_running = True
         genome = Genome(self.n_rows, self.n_cols)
         while self.keep_running:
-            clock.tick(30)
+            clock.tick(5)
             self.timer.set_value(self.board.time)
             self.current_mines.set_value(self.board.n_mines_left)
             self.place_hud()
-            make_move(self.board, genome, self.n_rows, self.n_cols)
+            make_move(self.board, genome, self.n_rows, self.n_cols, self.n_mines)
             self.process_events()
             self.show_name_input_timer.check()
             self.draw_all()
