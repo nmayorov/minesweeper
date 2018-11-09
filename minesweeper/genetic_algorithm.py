@@ -129,5 +129,8 @@ def make_move(board, genome, n_rows, n_cols, n_mines):
         board.update_view()
     if board.game_status == 'game_over' or board.game_status == 'victory':
         board.reset(n_rows, n_cols, n_mines)
+
+    if board.game_status == 'victory':
+        print('Yay, we won!!!')
     return
 
