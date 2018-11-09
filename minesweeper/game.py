@@ -304,7 +304,7 @@ class Game:
         if difficulty == "EASY":
             self.n_rows = 10
             self.n_cols = 10
-            self.n_mines = 10
+            self.n_mines = 7
         elif difficulty == "NORMAL":
             self.n_rows = 16
             self.n_cols = 16
@@ -601,6 +601,5 @@ def run(state_file_path):
             current_generation_individuals.pop(0)
             current_generation_individuals.append(game.start_main_loop(iterations_per_generation,
                                                                        current_generation_individuals_tmp))
-
 
     game.save_state(state_file_path)

@@ -1,5 +1,5 @@
 import numpy
-import random
+
 
 class Genome:
 
@@ -43,6 +43,7 @@ class Genome:
         self.update_genome()
 
         if top_row is None:
+
             DEFAULT = 0.5
 
             self.top_row = numpy.full((DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION),
@@ -85,9 +86,7 @@ class Genome:
         self.update_genome()
         return
 
-    def update_genome(self):
-        self.genome = [self.top_row, self.right_row, self.bot_row, self.left_row, self.top_right_corner,
-                       self.bot_right_corner, self.bot_left_corner, self.top_left_corner]
+        return
 
     def update_genotype(self, board, row_pos, col_pos, game_status):
 
@@ -188,7 +187,11 @@ class Genome:
         self.top_left_corner[surrounding_squares[1, 0], surrounding_squares[0, 0], surrounding_squares[0, 1]] = \
             ((top_left_corner * (top_left_corner_history - 1)) + response) / top_left_corner_history
 
-        self.update_genome()
+
+
+
+        # TODO: Update genotype on good or bad move
+
         return
 
     def get_optimal_move(self, board):
@@ -296,9 +299,27 @@ def make_move(board, genome, n_mines):
         board.update_view()
         genome.update_genotype(board, optimal_move[0], optimal_move[1], board.game_status)
 
-    if board.game_status == 'game_over' or board.game_status == 'victory':
-        board.reset(genome.n_rows, genome.n_cols, n_mines)
+    if genome.games_played % 1000 == 0 and (board.game_status == 'game_over' or board.game_status == 'victory'):
+        percentage_won_past_1000 = genome.victory_count_past_1000 / 1000 * 100
+        print(f'Percentage Won Past 1000 = {percentage_won_past_1000}%, Games Won = {genome.victory_count}, Games Played = {genome.games_played}')
+        genome.victory_count_past_1000 = 0
+
+    if board.game_status == 'game_over':
         genome.update_genotype(board, optimal_move[0], optimal_move[1], board.game_status)
+        genome.games_played += 1
+        board.reset(genome.n_rows, genome.n_cols, n_mines)
+
+
+    if board.game_status == 'victory':
+        genome.games_played += 1
+        genome.victory_count += 1
+        genome.victory_count_past_1000 += 1
+        percentage_won = genome.victory_count / genome.games_played * 100
+        board.reset(genome.n_rows, genome.n_cols, n_mines)
+
+        #print(f'VICTORY. Percentage won = {percentage_won}%, Games Won = {genome.victory_count}, Games Played = {genome.games_played}')
+
+
 
     return
 
