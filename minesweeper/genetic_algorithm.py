@@ -79,10 +79,12 @@ class Genome:
 
     def update_genotype(self, board, row_pos, col_pos, game_status):
 
+        LEARNING_RATE = 5
+
         if game_status == 'victory' or game_status == 'running':
-            response = 1
+            response = 1 * LEARNING_RATE
         else:
-            response = 0
+            response = 0 * LEARNING_RATE
 
         chromosomes = self.get_chromosomes(board, row_pos, col_pos)
         history = self.get_history(board, row_pos, col_pos)
@@ -90,33 +92,37 @@ class Genome:
         surrounding_squares = self.get_surrounding_squares(board, row_pos, col_pos)
 
         self.top_row_history[surrounding_squares[0, 0], surrounding_squares[0, 1], surrounding_squares[0, 2]] = \
-            self.top_row_history[surrounding_squares[0, 0], surrounding_squares[0, 1], surrounding_squares[0, 2]] + 1
+            self.top_row_history[surrounding_squares[0, 0], surrounding_squares[0, 1], surrounding_squares[0, 2]] + \
+            (1 * LEARNING_RATE)
 
         self.right_row_history[surrounding_squares[0, 2], surrounding_squares[1, 2], surrounding_squares[2, 2]] = \
-            self.right_row_history[surrounding_squares[0, 2], surrounding_squares[1, 2], surrounding_squares[2, 2]] + 1
+            self.right_row_history[surrounding_squares[0, 2], surrounding_squares[1, 2], surrounding_squares[2, 2]] + \
+            (1 * LEARNING_RATE)
 
         self.bot_row_history[surrounding_squares[2, 0], surrounding_squares[2, 1], surrounding_squares[2, 2]] = \
-            self.bot_row_history[surrounding_squares[2, 0], surrounding_squares[2, 1], surrounding_squares[2, 2]] + 1
+            self.bot_row_history[surrounding_squares[2, 0], surrounding_squares[2, 1], surrounding_squares[2, 2]] + \
+            (1 * LEARNING_RATE)
 
         self.left_row_history[surrounding_squares[0, 0], surrounding_squares[0, 1], surrounding_squares[0, 2]] = \
-            self.left_row_history[surrounding_squares[0, 0], surrounding_squares[0, 1], surrounding_squares[0, 2]] + 1
+            self.left_row_history[surrounding_squares[0, 0], surrounding_squares[0, 1], surrounding_squares[0, 2]] + \
+            (1 * LEARNING_RATE)
 
         #
         self.top_right_corner_history[surrounding_squares[0, 1], surrounding_squares[0, 2], surrounding_squares[1, 2]] \
             = self.top_right_corner_history[surrounding_squares[0, 1], surrounding_squares[0, 2],
-                                            surrounding_squares[1, 2]] + 1
+                                            surrounding_squares[1, 2]] + (1 * LEARNING_RATE)
 
         self.bot_right_corner_history[surrounding_squares[1, 2], surrounding_squares[2, 2], surrounding_squares[2, 1]] \
             = self.bot_right_corner_history[surrounding_squares[1, 2], surrounding_squares[2, 2],
-                                            surrounding_squares[2, 1]] + 1
+                                            surrounding_squares[2, 1]] + (1 * LEARNING_RATE)
 
         self.bot_left_corner_history[surrounding_squares[2, 1], surrounding_squares[2, 0], surrounding_squares[1, 0]] \
             = self.bot_left_corner_history[surrounding_squares[2, 1], surrounding_squares[2, 0],
-                                           surrounding_squares[1, 0]] + 1
+                                           surrounding_squares[1, 0]] + (1 * LEARNING_RATE)
 
         self.top_left_corner_history[surrounding_squares[1, 0], surrounding_squares[0, 0], surrounding_squares[0, 1]] \
             = self.top_left_corner_history[surrounding_squares[1, 0], surrounding_squares[0, 0],
-                                           surrounding_squares[0, 1]] + 1
+                                           surrounding_squares[0, 1]] + (1 * LEARNING_RATE)
 
         #
         top_row = self.top_row[surrounding_squares[0, 0], surrounding_squares[0, 1], surrounding_squares[0, 2]]
