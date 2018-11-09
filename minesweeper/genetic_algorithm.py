@@ -35,6 +35,10 @@ class Genome:
 
         self.initialized = initialized
 
+        self.victory_count = 0
+        self.games_played = 0
+        self.victory_count_past_1000 = 0
+
         if not self.initialized:
             DEFAULT = 0.5
             DOMAIN_DIMENSION = 11
@@ -288,9 +292,27 @@ def make_move(board, genome, n_mines):
         board.update_view()
         genome.update_genotype(board, optimal_move[0], optimal_move[1], board.game_status)
 
+    if genome.games_played % 1000 == 0 and (board.game_status == 'game_over' or board.game_status == 'victory'):
+        percentage_won_past_1000 = genome.victory_count_past_1000 / 1000 * 100
+        print(f'Percentage Won Past 1000 = {percentage_won_past_1000}%, Games Won = {genome.victory_count}, Games Played = {genome.games_played}')
+        genome.victory_count_past_1000 = 0
+
     if board.game_status == 'game_over':
         board.reset(genome.n_rows, genome.n_cols, n_mines)
+       # print('LOSE')
         genome.update_genotype(board, optimal_move[0], optimal_move[1], board.game_status)
+        genome.games_played += 1
+
+    if board.game_status == 'victory':
+        genome.games_played += 1
+        genome.victory_count += 1
+        genome.victory_count_past_1000 += 1
+
+        percentage_won = genome.victory_count / genome.games_played * 100
+
+        #print(f'VICTORY. Percentage won = {percentage_won}%, Games Won = {genome.victory_count}, Games Played = {genome.games_played}')
+
+
 
     return
 
