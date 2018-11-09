@@ -532,24 +532,36 @@ class Game:
                 self.width_input.on_key_down(event)
                 self.mines_input.on_key_down(event)
 
-    def start_main_loop(self):
+    def start_main_loop(self, iterations_per_generation, input_genome):
         """Start main game loop."""
         clock = pygame.time.Clock()
         self.keep_running = True
-        genome = Genome(self.n_rows, self.n_cols)
-        self.draw_all()
-        while self.keep_running:
-            clock.tick(1024)
+        top_row = input_genome[0]
+        right_row = input_genome[1]
+        bot_row = input_genome[2]
+        left_row = input_genome[3]
+        top_right_corner = input_genome[4]
+        bot_right_corner = input_genome[5]
+        bot_left_corner = input_genome[6]
+        top_left_corner = input_genome[7]
+
+        genome = Genome(self.n_rows, self.n_cols, top_row, right_row, bot_row, left_row, top_right_corner,
+                        bot_right_corner, bot_left_corner, top_left_corner)
+        # self.draw_all()
+        current_iteration = 0
+        while self.keep_running and current_iteration < iterations_per_generation:
+            clock.tick(2048)
             self.timer.set_value(self.board.time)
             self.current_mines.set_value(self.board.n_mines_left)
             self.place_hud()
             make_move(self.board, genome, self.n_mines)
             self.process_events()
             self.show_name_input_timer.check()
-            self.draw_all()
-            if self.board.game_status == 'victory':
-                self.draw_all()
-                self.board.reset(self.n_rows, self.n_cols, self.n_mines)
+
+            # self.draw_all()
+
+            current_iteration = current_iteration + 1
+        return genome.genome
 
     def save_state(self, state_file_path):
         """Save game state on disk."""
@@ -571,5 +583,23 @@ def run(state_file_path):
     game = Game(state_file_path)
     # ["EASY", "NORMAL", "HARD", "CUSTOM"],
     game.on_difficulty_change('EASY')
-    game.start_main_loop()
+
+    iterations_per_generation = 100
+    number_of_individuals_per_generation = 16
+    number_of_generations = 100
+
+    current_generation_individuals = []
+    clean_start = []
+    for iter1 in range(9):
+        clean_start.append(None)
+    for iter1 in range(number_of_individuals_per_generation):
+        current_generation_individuals.append(clean_start)
+    for iter1 in range(number_of_generations):
+        print(iter1)
+        for iter2 in range(number_of_individuals_per_generation):
+            current_generation_individuals_tmp = current_generation_individuals[0]
+            current_generation_individuals.pop(0)
+            current_generation_individuals.append(game.start_main_loop(iterations_per_generation,
+                                                                       current_generation_individuals_tmp))
+
     game.save_state(state_file_path)

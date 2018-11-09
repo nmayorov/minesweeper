@@ -4,11 +4,7 @@ import numpy
 class Genome:
 
     def __init__(self, n_rows, n_cols, top_row=None, right_row=None, bot_row=None, left_row=None,
-                 top_right_corner=None, bot_right_corner=None, bot_left_corner=None, top_left_corner=None,
-                 top_row_history=None, right_row_history=None, bot_row_history=None, left_row_history=None,
-                 top_right_corner_history=None, bot_right_corner_history=None,
-                 bot_left_corner_history=None, top_left_corner_history=None,
-                 initialized=bool(False)):
+                 top_right_corner=None, bot_right_corner=None, bot_left_corner=None, top_left_corner=None):
 
         self.n_rows = n_rows
         self.n_cols = n_cols
@@ -23,25 +19,32 @@ class Genome:
         self.bot_left_corner = bot_left_corner
         self.top_left_corner = top_left_corner
 
-        self.top_row_history = top_row_history
-        self.right_row_history = right_row_history
-        self.bot_row_history = bot_row_history
-        self.left_row_history = left_row_history
+        DOMAIN_DIMENSION = 11
 
-        self.top_right_corner_history = top_right_corner_history
-        self.bot_right_corner_history = bot_right_corner_history
-        self.bot_left_corner_history = bot_left_corner_history
-        self.top_left_corner_history = top_left_corner_history
+        self.top_row_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+        self.right_row_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+        self.bot_row_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+        self.left_row_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
 
-        self.initialized = initialized
+        self.top_right_corner_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+        self.bot_right_corner_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+        self.bot_left_corner_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+        self.top_left_corner_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
 
-        self.victory_count = 0
-        self.games_played = 0
-        self.victory_count_past_1000 = 0
+        self.genome = []
+        self.update_genome()
 
-        if not self.initialized:
+        if top_row is None:
+
             DEFAULT = 0.5
-            DOMAIN_DIMENSION = 11
 
             self.top_row = numpy.full((DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION),
                                       DEFAULT, dtype=numpy.float32)
@@ -61,23 +64,27 @@ class Genome:
             self.top_left_corner = numpy.full((DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION),
                                               DEFAULT, dtype=numpy.float32)
 
-            self.top_row_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-            self.right_row_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-            self.bot_row_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-            self.left_row_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+            VARIANCE = 0.5
+            for iter1 in range(DOMAIN_DIMENSION):
+                for iter2 in range(DOMAIN_DIMENSION):
+                    for iter3 in range(DOMAIN_DIMENSION):
+                        self.top_row[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 * VARIANCE)
+                        self.right_row[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 * VARIANCE)
+                        self.bot_row[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 * VARIANCE)
+                        self.left_row[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 * VARIANCE)
 
-            self.top_right_corner_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-            self.bot_right_corner_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-            self.bot_left_corner_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-            self.top_left_corner_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+                        self.top_right_corner[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 *
+                                                                                                               VARIANCE)
+                        self.bot_right_corner[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 *
+                                                                                                               VARIANCE)
+                        self.bot_left_corner[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 *
+                                                                                                              VARIANCE)
+                        self.top_left_corner[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 *
+                                                                                                              VARIANCE)
+
+
+        self.update_genome()
+        return
 
         return
 
@@ -190,9 +197,9 @@ class Genome:
     def get_optimal_move(self, board):
 
         fitness_ar = numpy.zeros((self.n_rows, self.n_cols), dtype=numpy.float32)
-        optimal_fitness = 0
-        optimal_row = None
-        optimal_column = None
+        optimal_fitness = -1
+        optimal_row = -1
+        optimal_column = -1
 
         for iter1 in range(self.n_rows):
             for iter2 in range(self.n_cols):
@@ -287,7 +294,7 @@ def make_move(board, genome, n_mines):
     mine_count = board.mine_count
     is_mine = board.is_mine
     optimal_move = genome.get_optimal_move(board)
-    if (optimal_move[0] is not None or optimal_move[1] is not None) and board.game_status != 'game_over' and board.game_status != 'victory':
+    if (optimal_move[0] is not -1 and optimal_move[1] is not -1) and board.game_status != 'game_over' and board.game_status != 'victory':
         board.open_tile(optimal_move[0], optimal_move[1])
         board.update_view()
         genome.update_genotype(board, optimal_move[0], optimal_move[1], board.game_status)
@@ -298,17 +305,17 @@ def make_move(board, genome, n_mines):
         genome.victory_count_past_1000 = 0
 
     if board.game_status == 'game_over':
-        board.reset(genome.n_rows, genome.n_cols, n_mines)
-       # print('LOSE')
         genome.update_genotype(board, optimal_move[0], optimal_move[1], board.game_status)
         genome.games_played += 1
+        board.reset(genome.n_rows, genome.n_cols, n_mines)
+
 
     if board.game_status == 'victory':
         genome.games_played += 1
         genome.victory_count += 1
         genome.victory_count_past_1000 += 1
-
         percentage_won = genome.victory_count / genome.games_played * 100
+        board.reset(genome.n_rows, genome.n_cols, n_mines)
 
         #print(f'VICTORY. Percentage won = {percentage_won}%, Games Won = {genome.victory_count}, Games Played = {genome.games_played}')
 
