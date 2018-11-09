@@ -1,5 +1,5 @@
 import numpy
-
+import random
 
 class Genome:
 
@@ -34,7 +34,10 @@ class Genome:
         self.top_left_corner_history = top_left_corner_history
 
         self.initialized = initialized
+        self.genome = []
+        self.update_genome()
 
+        self.top_row = 1
         if not self.initialized:
             DEFAULT = 0.5
             DOMAIN_DIMENSION = 11
@@ -57,6 +60,24 @@ class Genome:
             self.top_left_corner = numpy.full((DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION),
                                               DEFAULT, dtype=numpy.float32)
 
+            VARIANCE = 0.5
+            for iter1 in range(DOMAIN_DIMENSION):
+                for iter2 in range(DOMAIN_DIMENSION):
+                    for iter3 in range(DOMAIN_DIMENSION):
+                        self.top_row[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 * VARIANCE)
+                        self.right_row[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 * VARIANCE)
+                        self.bot_row[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 * VARIANCE)
+                        self.left_row[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 * VARIANCE)
+
+                        self.top_right_corner[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 *
+                                                                                                               VARIANCE)
+                        self.bot_right_corner[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 *
+                                                                                                               VARIANCE)
+                        self.bot_left_corner[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 *
+                                                                                                              VARIANCE)
+                        self.top_left_corner[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 *
+                                                                                                              VARIANCE)
+
             self.top_row_history = numpy.full(
                 (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
             self.right_row_history = numpy.full(
@@ -74,8 +95,12 @@ class Genome:
                 (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
             self.top_left_corner_history = numpy.full(
                 (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-
+        self.update_genome()
         return
+
+    def update_genome(self):
+        self.genome = [self.top_row, self.right_row, self.bot_row, self.left_row, self.top_right_corner,
+                       self.bot_right_corner, self.bot_left_corner, self.top_left_corner]
 
     def update_genotype(self, board, row_pos, col_pos, game_status):
 
@@ -176,19 +201,15 @@ class Genome:
         self.top_left_corner[surrounding_squares[1, 0], surrounding_squares[0, 0], surrounding_squares[0, 1]] = \
             ((top_left_corner * (top_left_corner_history - 1)) + response) / top_left_corner_history
 
-
-
-
-        # TODO: Update genotype on good or bad move
-
+        self.update_genome()
         return
 
     def get_optimal_move(self, board):
 
         fitness_ar = numpy.zeros((self.n_rows, self.n_cols), dtype=numpy.float32)
-        optimal_fitness = 0
-        optimal_row = None
-        optimal_column = None
+        optimal_fitness = -1
+        optimal_row = -1
+        optimal_column = -1
 
         for iter1 in range(self.n_rows):
             for iter2 in range(self.n_cols):
@@ -283,12 +304,12 @@ def make_move(board, genome, n_mines):
     mine_count = board.mine_count
     is_mine = board.is_mine
     optimal_move = genome.get_optimal_move(board)
-    if (optimal_move[0] is not None or optimal_move[1] is not None) and board.game_status != 'game_over' and board.game_status != 'victory':
+    if (optimal_move[0] is not -1 and optimal_move[1] is not -1) and board.game_status != 'game_over' and board.game_status != 'victory':
         board.open_tile(optimal_move[0], optimal_move[1])
         board.update_view()
         genome.update_genotype(board, optimal_move[0], optimal_move[1], board.game_status)
 
-    if board.game_status == 'game_over':
+    if board.game_status == 'game_over' or board.game_status == 'victory':
         board.reset(genome.n_rows, genome.n_cols, n_mines)
         genome.update_genotype(board, optimal_move[0], optimal_move[1], board.game_status)
 

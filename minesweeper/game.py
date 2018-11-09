@@ -532,13 +532,14 @@ class Game:
                 self.width_input.on_key_down(event)
                 self.mines_input.on_key_down(event)
 
-    def start_main_loop(self):
+    def start_main_loop(self, iterations_per_generation):
         """Start main game loop."""
         clock = pygame.time.Clock()
         self.keep_running = True
         genome = Genome(self.n_rows, self.n_cols)
         self.draw_all()
-        while self.keep_running:
+        current_iteration = 0
+        while self.keep_running and current_iteration < iterations_per_generation:
             clock.tick(2048)
             self.timer.set_value(self.board.time)
             self.current_mines.set_value(self.board.n_mines_left)
@@ -546,9 +547,11 @@ class Game:
             make_move(self.board, genome, self.n_mines)
             self.process_events()
             self.show_name_input_timer.check()
-            if self.board.game_status == 'victory':
-                self.draw_all()
-                self.board.reset(self.n_rows, self.n_cols, self.n_mines)
+
+            self.draw_all()
+
+            current_iteration = current_iteration + 1
+        return genome.genome
 
     def save_state(self, state_file_path):
         """Save game state on disk."""
@@ -569,6 +572,11 @@ def run(state_file_path):
     pygame.mouse.set_visible(True)
     game = Game(state_file_path)
     # ["EASY", "NORMAL", "HARD", "CUSTOM"],
-    game.on_difficulty_change('HARD')
-    game.start_main_loop()
+    game.on_difficulty_change('EASY')
+    iterations_per_generation = 100
+    number_of_individuals_per_generation = 5
+    current_generation_individuals = []
+    for iter1 in range(number_of_individuals_per_generation):
+        current_generation_individuals.append(game.start_main_loop(iterations_per_generation))
+
     game.save_state(state_file_path)
