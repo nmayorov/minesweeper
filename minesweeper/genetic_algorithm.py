@@ -4,11 +4,7 @@ import random
 class Genome:
 
     def __init__(self, n_rows, n_cols, top_row=None, right_row=None, bot_row=None, left_row=None,
-                 top_right_corner=None, bot_right_corner=None, bot_left_corner=None, top_left_corner=None,
-                 top_row_history=None, right_row_history=None, bot_row_history=None, left_row_history=None,
-                 top_right_corner_history=None, bot_right_corner_history=None,
-                 bot_left_corner_history=None, top_left_corner_history=None,
-                 initialized=bool(False)):
+                 top_right_corner=None, bot_right_corner=None, bot_left_corner=None, top_left_corner=None):
 
         self.n_rows = n_rows
         self.n_cols = n_cols
@@ -23,24 +19,31 @@ class Genome:
         self.bot_left_corner = bot_left_corner
         self.top_left_corner = top_left_corner
 
-        self.top_row_history = top_row_history
-        self.right_row_history = right_row_history
-        self.bot_row_history = bot_row_history
-        self.left_row_history = left_row_history
+        DOMAIN_DIMENSION = 11
 
-        self.top_right_corner_history = top_right_corner_history
-        self.bot_right_corner_history = bot_right_corner_history
-        self.bot_left_corner_history = bot_left_corner_history
-        self.top_left_corner_history = top_left_corner_history
+        self.top_row_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+        self.right_row_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+        self.bot_row_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+        self.left_row_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
 
-        self.initialized = initialized
+        self.top_right_corner_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+        self.bot_right_corner_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+        self.bot_left_corner_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+        self.top_left_corner_history = numpy.full(
+            (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
+
         self.genome = []
         self.update_genome()
 
-        self.top_row = 1
-        if not self.initialized:
+        if top_row is None:
             DEFAULT = 0.5
-            DOMAIN_DIMENSION = 11
 
             self.top_row = numpy.full((DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION),
                                       DEFAULT, dtype=numpy.float32)
@@ -78,23 +81,7 @@ class Genome:
                         self.top_left_corner[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 *
                                                                                                               VARIANCE)
 
-            self.top_row_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-            self.right_row_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-            self.bot_row_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-            self.left_row_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
 
-            self.top_right_corner_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-            self.bot_right_corner_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-            self.bot_left_corner_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-            self.top_left_corner_history = numpy.full(
-                (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
         self.update_genome()
         return
 
