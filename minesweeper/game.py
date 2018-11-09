@@ -558,7 +558,7 @@ class Game:
             self.process_events()
             self.show_name_input_timer.check()
 
-            # self.draw_all()
+            self.draw_all()
 
             current_iteration = current_iteration + 1
         return genome.genome
