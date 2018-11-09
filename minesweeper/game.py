@@ -537,15 +537,18 @@ class Game:
         clock = pygame.time.Clock()
         self.keep_running = True
         genome = Genome(self.n_rows, self.n_cols)
+        self.draw_all()
         while self.keep_running:
-            clock.tick(5)
+            clock.tick(2048)
             self.timer.set_value(self.board.time)
             self.current_mines.set_value(self.board.n_mines_left)
             self.place_hud()
-            make_move(self.board, genome, self.n_rows, self.n_cols, self.n_mines)
+            make_move(self.board, genome, self.n_mines)
             self.process_events()
             self.show_name_input_timer.check()
-            self.draw_all()
+            if self.board.game_status == 'victory':
+                self.draw_all()
+                self.board.reset(self.n_rows, self.n_cols, self.n_mines)
 
     def save_state(self, state_file_path):
         """Save game state on disk."""
@@ -565,5 +568,7 @@ def run(state_file_path):
     pygame.display.set_caption('Minesweeper')
     pygame.mouse.set_visible(True)
     game = Game(state_file_path)
+    # ["EASY", "NORMAL", "HARD", "CUSTOM"],
+    game.on_difficulty_change('HARD')
     game.start_main_loop()
     game.save_state(state_file_path)
