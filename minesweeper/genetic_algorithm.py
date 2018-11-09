@@ -1,5 +1,5 @@
 import numpy
-
+import random
 
 class Genome:
 
@@ -18,6 +18,13 @@ class Genome:
         self.bot_right_corner = bot_right_corner
         self.bot_left_corner = bot_left_corner
         self.top_left_corner = top_left_corner
+
+        self.victory_count = 0
+        self.games_played = 0
+        self.victory_count_past_1000 = 0
+
+        self.genome = []
+        self.update_genome()
 
         DOMAIN_DIMENSION = 11
 
@@ -38,9 +45,6 @@ class Genome:
             (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
         self.top_left_corner_history = numpy.full(
             (DOMAIN_DIMENSION, DOMAIN_DIMENSION, DOMAIN_DIMENSION), 1, dtype=numpy.float32)
-
-        self.genome = []
-        self.update_genome()
 
         if top_row is None:
 
@@ -82,10 +86,13 @@ class Genome:
                         self.top_left_corner[iter1, iter2, iter3] = DEFAULT + (random.random() * VARIANCE) - (0.5 *
                                                                                                               VARIANCE)
 
-
         self.update_genome()
+
         return
 
+    def update_genome(self):
+        self.genome = [self.top_row, self.right_row,  self.bot_row, self.left_row, self.top_right_corner,
+                        self.bot_right_corner, self.bot_left_corner, self.top_left_corner]
         return
 
     def update_genotype(self, board, row_pos, col_pos, game_status):
