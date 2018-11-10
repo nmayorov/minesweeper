@@ -577,7 +577,7 @@ class Game:
             json.dump(state, state_file)
 
 
-def run(state_file_path):
+def run(state_file_path, genomes):
     pygame.init()
     pygame.display.set_caption('Minesweeper')
     pygame.mouse.set_visible(True)
@@ -587,7 +587,7 @@ def run(state_file_path):
 
     iterations_per_generation = 1000
     number_of_individuals_per_generation = 16
-    number_of_generations = 100
+    number_of_generations = 1
 
     current_generation_individuals = []
     current_generation_fitnesses = []
@@ -612,5 +612,6 @@ def run(state_file_path):
             print('Individual Fitness: ', resulting_individual_fitness)
         crossover(current_generation_individuals, current_generation_fitnesses)
 
+    genomes.append(current_generation_individuals[-1])
 
     game.save_state(state_file_path)

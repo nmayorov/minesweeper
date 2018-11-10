@@ -9,3 +9,4 @@ examples/.ipynb_checkpoints
 *.pyc
 
 .DS_store
+.vscode/settings.json
