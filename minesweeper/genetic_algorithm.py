@@ -101,10 +101,12 @@ class Genome:
     def update_genotype(self, board, row_pos, col_pos, game_status):
 
         LEARNING_RATE = 5
+        LOSS_MULTIPLIER = 2
 
         if game_status == 'victory' or game_status == 'running':
             response = 1 * LEARNING_RATE
         else:
+            LEARNING_RATE = LEARNING_RATE * LOSS_MULTIPLIER
             response = 0 * LEARNING_RATE
 
         chromosomes = self.get_chromosomes(board, row_pos, col_pos)
@@ -335,3 +337,17 @@ def make_move(board, genome, n_mines):
 
     return
 
+
+def crossover(current_generation_individuals, current_generation_fitnesses):
+
+    number_of_individuals_per_generation = len(current_generation_fitnesses)
+
+    next_generation_individuals = []
+    next_generation_fitnesses = []
+
+    for iter1 in range(number_of_individuals_per_generation):
+        next_generation_fitnesses.append(None)
+
+
+
+    return next_generation_individuals, next_generation_fitnesses

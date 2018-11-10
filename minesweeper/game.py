@@ -304,7 +304,7 @@ class Game:
         if difficulty == "EASY":
             self.n_rows = 10
             self.n_cols = 10
-            self.n_mines = 7
+            self.n_mines = 10
         elif difficulty == "NORMAL":
             self.n_rows = 16
             self.n_cols = 16
@@ -590,21 +590,27 @@ def run(state_file_path):
     number_of_generations = 100
 
     current_generation_individuals = []
+    current_generation_fitnesses = []
     clean_start = []
     for iter1 in range(9):
         clean_start.append(None)
     for iter1 in range(number_of_individuals_per_generation):
         current_generation_individuals.append(clean_start)
+        current_generation_fitnesses.append(None)
     for iter1 in range(number_of_generations):
         for iter2 in range(number_of_individuals_per_generation):
             print('Individual: ', iter2, 'Generation: ', iter1)
             current_generation_individuals_tmp = current_generation_individuals[0]
             current_generation_individuals.pop(0)
+            current_generation_fitnesses.pop(0)
             resulting_individual = game.start_main_loop(iterations_per_generation,
                                                         current_generation_individuals_tmp)
             resulting_individual_genome = resulting_individual[0]
             resulting_individual_fitness = resulting_individual[1]
             current_generation_individuals.append(resulting_individual_genome)
+            current_generation_fitnesses.append(resulting_individual_fitness)
             print('Individual Fitness: ', resulting_individual_fitness)
+        crossover(current_generation_individuals, current_generation_fitnesses)
+
 
     game.save_state(state_file_path)
