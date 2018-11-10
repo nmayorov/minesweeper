@@ -561,7 +561,8 @@ class Game:
             self.draw_all()
 
             current_iteration = current_iteration + 1
-        return genome.genome
+        percent_successful_moves = genome.successful_moves / iterations_per_generation
+        return genome.genome, percent_successful_moves
 
     def save_state(self, state_file_path):
         """Save game state on disk."""
@@ -584,7 +585,7 @@ def run(state_file_path):
     # ["EASY", "NORMAL", "HARD", "CUSTOM"],
     game.on_difficulty_change('EASY')
 
-    iterations_per_generation = 100
+    iterations_per_generation = 1000
     number_of_individuals_per_generation = 16
     number_of_generations = 100
 
@@ -595,11 +596,15 @@ def run(state_file_path):
     for iter1 in range(number_of_individuals_per_generation):
         current_generation_individuals.append(clean_start)
     for iter1 in range(number_of_generations):
-        print(iter1)
         for iter2 in range(number_of_individuals_per_generation):
+            print('Individual: ', iter2, 'Generation: ', iter1)
             current_generation_individuals_tmp = current_generation_individuals[0]
             current_generation_individuals.pop(0)
-            current_generation_individuals.append(game.start_main_loop(iterations_per_generation,
-                                                                       current_generation_individuals_tmp))
+            resulting_individual = game.start_main_loop(iterations_per_generation,
+                                                        current_generation_individuals_tmp)
+            resulting_individual_genome = resulting_individual[0]
+            resulting_individual_fitness = resulting_individual[1]
+            current_generation_individuals.append(resulting_individual_genome)
+            print('Individual Fitness: ', resulting_individual_fitness)
 
     game.save_state(state_file_path)
