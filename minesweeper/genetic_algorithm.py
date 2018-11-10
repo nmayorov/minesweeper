@@ -21,7 +21,10 @@ class Genome:
 
         self.victory_count = 0
         self.games_played = 0
-        self.victory_count_past_1000 = 0
+        self.victory_count_recent_history = 0
+
+        self.successful_moves = 0
+        self.failed_moves = 0
 
         self.genome = []
         self.update_genome()
@@ -210,22 +213,23 @@ class Genome:
 
         for iter1 in range(self.n_rows):
             for iter2 in range(self.n_cols):
-                chromosomes = self.get_chromosomes(board, iter1, iter2)
-                current_top_row = chromosomes[0]
-                current_right_row = chromosomes[1]
-                current_bot_row = chromosomes[2]
-                current_left_row = chromosomes[3]
+                if board.tile_status[iter1, iter2] == 0:
+                    chromosomes = self.get_chromosomes(board, iter1, iter2)
+                    current_top_row = chromosomes[0]
+                    current_right_row = chromosomes[1]
+                    current_bot_row = chromosomes[2]
+                    current_left_row = chromosomes[3]
 
-                current_top_right_corner = chromosomes[4]
-                current_bot_right_corner = chromosomes[5]
-                current_bot_left_corner = chromosomes[6]
-                current_top_left_corner = chromosomes[7]
+                    current_top_right_corner = chromosomes[4]
+                    current_bot_right_corner = chromosomes[5]
+                    current_bot_left_corner = chromosomes[6]
+                    current_top_left_corner = chromosomes[7]
 
-                mean_fitness = numpy.mean([current_top_row, current_right_row, current_bot_row, current_left_row,
-                                           current_top_right_corner, current_bot_right_corner,
-                                           current_bot_left_corner, current_top_left_corner])
+                    mean_fitness = numpy.mean([current_top_row, current_right_row, current_bot_row, current_left_row,
+                                               current_top_right_corner, current_bot_right_corner,
+                                               current_bot_left_corner, current_top_left_corner])
 
-                fitness_ar[iter1, iter2] = mean_fitness
+                    fitness_ar[iter1, iter2] = mean_fitness
 
         for iter1 in range(self.n_rows):
             for iter2 in range(self.n_cols):
@@ -301,32 +305,33 @@ def make_move(board, genome, n_mines):
     mine_count = board.mine_count
     is_mine = board.is_mine
     optimal_move = genome.get_optimal_move(board)
+    recent_history = 100
     if (optimal_move[0] is not -1 and optimal_move[1] is not -1) and board.game_status != 'game_over' and board.game_status != 'victory':
         board.open_tile(optimal_move[0], optimal_move[1])
         board.update_view()
         genome.update_genotype(board, optimal_move[0], optimal_move[1], board.game_status)
+        genome.successful_moves += 1
 
-    if genome.games_played % 1000 == 0 and (board.game_status == 'game_over' or board.game_status == 'victory'):
-        percentage_won_past_1000 = genome.victory_count_past_1000 / 1000 * 100
-        print(f'Percentage Won Past 1000 = {percentage_won_past_1000}%, Games Won = {genome.victory_count}, Games Played = {genome.games_played}')
-        genome.victory_count_past_1000 = 0
+    if genome.games_played % recent_history == 0 and (board.game_status == 'game_over' or board.game_status == 'victory') and genome.games_played > 0:
+        percentage_won_recent_history = genome.victory_count_recent_history / recent_history * 100
+        print(f'Percentage Won Past {recent_history} = {percentage_won_recent_history}%, Games Won = '
+              f'{genome.victory_count}, Games Played = {genome.games_played}')
+        genome.victory_count_recent_history = 0
 
     if board.game_status == 'game_over':
         genome.update_genotype(board, optimal_move[0], optimal_move[1], board.game_status)
         genome.games_played += 1
+        genome.failed_moves += 1
+        genome.successful_moves -= 2
         board.reset(genome.n_rows, genome.n_cols, n_mines)
 
 
     if board.game_status == 'victory':
         genome.games_played += 1
         genome.victory_count += 1
-        genome.victory_count_past_1000 += 1
-        percentage_won = genome.victory_count / genome.games_played * 100
+        genome.victory_count_recent_history += 1
+        genome.successful_moves += 1
         board.reset(genome.n_rows, genome.n_cols, n_mines)
-
-        #print(f'VICTORY. Percentage won = {percentage_won}%, Games Won = {genome.victory_count}, Games Played = {genome.games_played}')
-
-
 
     return
 
