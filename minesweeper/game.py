@@ -577,13 +577,16 @@ class Game:
             json.dump(state, state_file)
 
 
-def run(state_file_path, genomes):
+def run(state_file_path, id, genomes):
     pygame.init()
     pygame.display.set_caption('Minesweeper')
     pygame.mouse.set_visible(True)
     game = Game(state_file_path)
     # ["EASY", "NORMAL", "HARD", "CUSTOM"],
     game.on_difficulty_change('EASY')
+
+    csvOut = open("proc_" + str(id) + ".csv", "w+")
+    csvOut.write("Generation,Fitness\n")
 
     iterations_per_generation = 1000
     number_of_individuals_per_generation = 16
@@ -598,6 +601,8 @@ def run(state_file_path, genomes):
         current_generation_individuals.append(clean_start)
         current_generation_fitnesses.append(None)
     for iter1 in range(number_of_generations):
+        bestFitness = 0 
+
         for iter2 in range(number_of_individuals_per_generation):
             print('Individual: ', iter2, 'Generation: ', iter1)
             current_generation_individuals_tmp = current_generation_individuals[0]
@@ -610,8 +615,16 @@ def run(state_file_path, genomes):
             current_generation_individuals.append(resulting_individual_genome)
             current_generation_fitnesses.append(resulting_individual_fitness)
             print('Individual Fitness: ', resulting_individual_fitness)
+
+            if(resulting_individual_fitness > bestFitness):
+                bestFitness = resulting_individual_fitness
+
         crossover(current_generation_individuals, current_generation_fitnesses)
 
+        csvOut.write(str(iter1) + "," + str(bestFitness))
+
+    csvOut.close()
+    
     genomes.append(current_generation_individuals[-1])
 
     game.save_state(state_file_path)
